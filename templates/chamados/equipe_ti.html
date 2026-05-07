@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban - Equipe TI</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'chamados/css/login.css' %}">
+    <link rel="stylesheet" href="{% static 'chamados/css/kanban.css' %}">
+</head>
+<body>
+
+    <div class="top-header">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="fw-bold mb-0">
+                    <i class="fas fa-columns text-primary"></i> Kanban - Equipe TI
+                </h2>
+                <div class="d-flex align-items-center gap-2">
+                    <span>Olá, <strong>{{ user.get_full_name|default:user.username }}</strong></span>
+                    <button id="darkModeToggle" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <a href="{% url 'cadastrar_ti' %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-user-plus"></i> Novo TI
+                    </a>
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid py-3">
+        <div class="kanban-wrapper">
+            <!-- Triagem, Em Atendimento e Concluído (mesmo de antes) -->
+            <div class="kanban-column">
+                <div class="column-header">🔍 Triagem ({{ count_triagem }})</div>
+                <div class="cards-container" data-status="Triagem">
+                    {% for chamado in chamados %}
+                        {% if chamado.status == 'Triagem' or chamado.status == 'Novo' %}
+                            {% include 'chamados/partials/chamado_card.html' with chamado=chamado %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="kanban-column">
+                <div class="column-header">🔧 Em Atendimento ({{ count_atendimento }})</div>
+                <div class="cards-container" data-status="Em Atendimento">
+                    {% for chamado in chamados %}
+                        {% if chamado.status == 'Em Atendimento' %}
+                            {% include 'chamados/partials/chamado_card.html' with chamado=chamado %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="kanban-column">
+                <div class="column-header">✅ Concluído ({{ count_concluido }})</div>
+                <div class="cards-container" data-status="Fechado">
+                    {% for chamado in chamados %}
+                        {% if chamado.status == 'Fechado' %}
+                            {% include 'chamados/partials/chamado_card.html' with chamado=chamado %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal fade" id="detalheModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chamado #<span id="modalId"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'chamados/js/kanban.js' %}"></script>
+</body>
+</html>

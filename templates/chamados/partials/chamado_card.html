@@ -1,0 +1,18 @@
+<!-- templates/chamados/partials/chamado_card.html -->
+<div class="kanban-card" data-id="{{ chamado.id }}" style="cursor: pointer;">
+    <div class="d-flex justify-content-between align-items-start mb-1">
+        <strong>#{{ chamado.id }}</strong>
+        <span class="badge {% if chamado.tipo == 'problema' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+            {{ chamado.get_tipo_display }}
+        </span>
+    </div>
+    
+    <p class="mb-1 fw-medium small">{{ chamado.nome_usuario }}</p>
+    <p class="small text-muted mb-2">{{ chamado.local }} • {{ chamado.categoria }}</p>
+    
+    <p class="small text-truncate mb-2" style="max-height: 40px; line-height: 1.35;">
+        {{ chamado.problema }}
+    </p>
+    
+    <small class="text-muted">{{ chamado.data_abertura|date:"d/m H:i" }}</small>
+</div>
