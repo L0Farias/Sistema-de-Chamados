@@ -1,0 +1,18 @@
+# Django
+Django==5.2.13
+
+# Ambiente e configurações
+python-dotenv==1.0.1
+
+# Para formulários bonitos (opcional, mas útil)
+django-crispy-forms==2.3
+crispy-bootstrap5==0.7
+
+# Para trabalhar com arquivos estáticos em produção
+whitenoise==6.8.2
+
+# Caso use imagens no futuro
+Pillow==11.2.1
+
+# Desenvolvimento
+django-debug-toolbar==5.1.0
