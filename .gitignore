@@ -1,27 +1,23 @@
-# Virtual Environment
+# Django
 venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Django
-*.log
-*.pot
-*.mo
 db.sqlite3
 db.sqlite3-journal
+
+# Ambiente
+.env
+.venv/
+env/
+ENV/
+
+# Arquivos estáticos gerados
+staticfiles/
 media/
 
-# Environment variables
-.env
-
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+# Outros
 .DS_Store
 Thumbs.db
+*.log
