@@ -1,0 +1,5 @@
+BACKLOG
+BUG-B01
+Padronizar unicidade case-insensitive do email
+em forms.py
+

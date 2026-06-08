@@ -49,7 +49,7 @@
                                 </span>
                             </td>
                             <td>
-                                <span class="badge bg-{{ chamado.status|lower|slice:1 }}">
+                                <span class="badge {% if chamado.status == 'Novo' %}bg-primary{% elif chamado.status == 'Triagem' %}bg-warning text-dark{% elif chamado.status == 'Em Atendimento' %}bg-info text-dark{% elif chamado.status == 'Fechado' %}bg-success{% else %}bg-secondary{% endif %}">
                                     {{ chamado.status }}
                                 </span>
                             </td>

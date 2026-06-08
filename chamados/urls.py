@@ -33,6 +33,13 @@ urlpatterns = [
 
     #===================== AJAX =====================
     path('load-more-chamados/', views.load_more_chamados, name='load_more_chamados'),
+    path('chamado/<int:pk>/ajax/', views.detalhe_chamado_ajax, name='detalhe_chamado_ajax'),
+
+    #================== Relatorios =================
+    path('relatorios/', views.relatorios, name='relatorios'),
+    path('relatorios/ajax/', views.relatorios_ajax, name='relatorios_ajax'),
+    path('relatorios/dashboard/', views.relatorios_dashboard, name='relatorios_dashboard'),
+    path('relatorios/exportar/', views.relatorios_exportar, name='relatorios_exportar'),
 ]
 
 

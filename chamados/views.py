@@ -1,7 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.contrib import messages
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+from django.utils import timezone
 from .forms import LoginForm, UsuarioComumCreationForm, ChamadoForm
 from .models import Chamado, MensagemChat
 
@@ -93,8 +97,15 @@ def cadastrar_ti(request):
 def usuario_comum(request):
     if request.user.tipo != 'comum':
         return redirect('equipe_ti')
-    
-    return render(request, 'chamados/usuario_comum.html', {'user': request.user})
+
+    meus_chamados = Chamado.objects.filter(
+        nome_usuario=request.user
+    ).order_by('-data_abertura')
+
+    return render(request, 'chamados/usuario_comum.html', {
+        'user': request.user,
+        'meus_chamados': meus_chamados,
+    })
 
 
 # ====================== ÁREA DA EQUIPE TI ======================
@@ -102,8 +113,10 @@ def usuario_comum(request):
 def equipe_ti(request):
     if request.user.tipo != 'ti':
         return redirect('usuario_comum')
-    
-    chamados = Chamado.objects.all().order_by('-data_abertura')
+
+    chamados = Chamado.objects.select_related(
+        'nome_usuario', 'atendente'
+    ).all().order_by('-data_abertura')
     
     # Contagens por status
     count_triagem = chamados.filter(status__in=['Novo', 'Triagem']).count()
@@ -160,55 +173,65 @@ def detalhe_chamado(request, pk):
 
 # ====================== AÇÕES DO TI ======================
 @login_required
+@require_POST
 def triar_chamado(request, pk):
     if request.user.tipo != 'ti':
         messages.error(request, 'Acesso negado.')
         return redirect('login')
-    
+
     chamado = get_object_or_404(Chamado, pk=pk)
     chamado.status = 'Triagem'
     chamado.atendente = request.user
+    chamado.data_triagem = timezone.now()
     chamado.save()
     messages.success(request, f'Chamado #{pk} enviado para Triagem.')
     return redirect('equipe_ti')
 
 
 @login_required
+@require_POST
 def iniciar_atendimento(request, pk):
     if request.user.tipo != 'ti':
         messages.error(request, 'Acesso negado.')
         return redirect('login')
-    
+
     chamado = get_object_or_404(Chamado, pk=pk)
     chamado.status = 'Em Atendimento'
     chamado.atendente = request.user
+    chamado.data_atendimento = timezone.now()
     chamado.save()
     messages.success(request, f'Atendimento do chamado #{pk} iniciado.')
     return redirect('equipe_ti')
 
 
 @login_required
+@require_POST
 def fechar_chamado(request, pk):
     if request.user.tipo != 'ti':
         messages.error(request, 'Acesso negado.')
         return redirect('login')
-    
+
     chamado = get_object_or_404(Chamado, pk=pk)
     chamado.status = 'Fechado'
+    chamado.data_fechamento = timezone.now()
     chamado.save()
     messages.success(request, f'Chamado #{pk} fechado com sucesso.')
     return redirect('equipe_ti')
 
 
 @login_required
+@require_POST
 def reabrir_chamado(request, pk):
     if request.user.tipo != 'ti':
         messages.error(request, 'Acesso negado.')
         return redirect('login')
-    
+
     chamado = get_object_or_404(Chamado, pk=pk)
     chamado.status = 'Novo'
     chamado.atendente = None
+    chamado.data_triagem = None
+    chamado.data_atendimento = None
+    chamado.data_fechamento = None
     chamado.save()
     messages.success(request, f'Chamado #{pk} reaberto.')
     return redirect('equipe_ti')
@@ -231,9 +254,6 @@ def enviar_mensagem(request, pk):
     return redirect('detalhe_chamado', pk=pk)
 
 #=====================AJAX======================
-from django.http import JsonResponse
-from django.core.paginator import Paginator
-
 @login_required
 def load_more_chamados(request):
     status = request.GET.get('status')
@@ -260,4 +280,222 @@ def load_more_chamados(request):
         'has_next': page_obj.has_next()
     }
 
+    return JsonResponse(data)
+
+#=====================Relatorios======================
+@login_required
+def relatorios(request):
+    if request.user.tipo != 'ti':
+        messages.error(request, 'Acesso negado.')
+        return redirect('usuario_comum')
+
+    from .models import Usuario as Usr
+    atendentes = Usr.objects.filter(tipo='ti').order_by('username')
+    etiqueta_choices = [c[0] for c in Chamado.ETIQUETA_CHOICES]
+    status_choices   = [c[0] for c in Chamado.STATUS_CHOICES]
+
+    return render(request, 'chamados/relatorios.html', {
+        'user': request.user,
+        'atendentes': atendentes,
+        'etiqueta_choices': etiqueta_choices,
+        'status_choices': status_choices,
+    })
+
+
+@login_required
+def relatorios_ajax(request):
+    """Endpoint AJAX para listagem filtrada de chamados."""
+    if request.user.tipo != 'ti':
+        return JsonResponse({'error': 'Acesso negado'}, status=403)
+
+    qs = Chamado.objects.select_related('nome_usuario', 'atendente').all()
+
+    # Filtros
+    etiqueta   = request.GET.get('etiqueta', '').strip()
+    status     = request.GET.get('status', '').strip()
+    atendente  = request.GET.get('atendente', '').strip()
+    data_ini   = request.GET.get('data_ini', '').strip()
+    data_fim   = request.GET.get('data_fim', '').strip()
+    busca      = request.GET.get('busca', '').strip()
+
+    if etiqueta:
+        qs = qs.filter(etiqueta=etiqueta)
+    if status:
+        qs = qs.filter(status=status)
+    if atendente:
+        qs = qs.filter(atendente__username=atendente)
+    if data_ini:
+        qs = qs.filter(data_abertura__date__gte=data_ini)
+    if data_fim:
+        qs = qs.filter(data_abertura__date__lte=data_fim)
+    if busca:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(id__icontains=busca) |
+            Q(nome_usuario__username__icontains=busca) |
+            Q(nome_usuario__first_name__icontains=busca) |
+            Q(nome_usuario__last_name__icontains=busca) |
+            Q(problema__icontains=busca)
+        )
+
+    page     = int(request.GET.get('page', 1))
+    per_page = 20
+    paginator = Paginator(qs.order_by('-data_abertura'), per_page)
+    page_obj  = paginator.get_page(page)
+
+    rows = []
+    for c in page_obj:
+        rows.append({
+            'id':             c.id,
+            'solicitante':    c.nome_usuario.get_full_name() or c.nome_usuario.username,
+            'local':          c.local,
+            'categoria':      c.categoria,
+            'etiqueta':       c.etiqueta,
+            'status':         c.status,
+            'data_abertura':  c.data_abertura.strftime('%d/%m/%Y %H:%M'),
+            'data_fechamento': c.data_fechamento.strftime('%d/%m/%Y %H:%M') if c.data_fechamento else '—',
+            'atendente':      c.atendente.username if c.atendente else '—',
+        })
+
+    return JsonResponse({
+        'chamados':   rows,
+        'total':      paginator.count,
+        'num_pages':  paginator.num_pages,
+        'page':       page_obj.number,
+        'has_next':   page_obj.has_next(),
+        'has_prev':   page_obj.has_previous(),
+    })
+
+
+@login_required
+def relatorios_dashboard(request):
+    """Dados para os gráficos Chart.js."""
+    if request.user.tipo != 'ti':
+        return JsonResponse({'error': 'Acesso negado'}, status=403)
+
+    from django.db.models import Count
+    from .models import Usuario as Usr
+
+    por_etiqueta = dict(
+        Chamado.objects.values_list('etiqueta').annotate(total=Count('id'))
+    )
+    por_status = dict(
+        Chamado.objects.values_list('status').annotate(total=Count('id'))
+    )
+    por_atendente_qs = (
+        Chamado.objects
+        .filter(atendente__isnull=False)
+        .values('atendente__username')
+        .annotate(total=Count('id'))
+        .order_by('-total')
+    )
+    por_atendente = {r['atendente__username']: r['total'] for r in por_atendente_qs}
+
+    return JsonResponse({
+        'por_etiqueta': por_etiqueta,
+        'por_status':   por_status,
+        'por_atendente': por_atendente,
+    })
+
+
+@login_required
+def relatorios_exportar(request):
+    """Exporta chamados filtrados para Excel usando openpyxl."""
+    if request.user.tipo != 'ti':
+        return JsonResponse({'error': 'Acesso negado'}, status=403)
+
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.http import HttpResponse
+    from datetime import date
+
+    qs = Chamado.objects.select_related('nome_usuario', 'atendente').all()
+
+    etiqueta  = request.GET.get('etiqueta', '').strip()
+    status    = request.GET.get('status', '').strip()
+    atendente = request.GET.get('atendente', '').strip()
+    data_ini  = request.GET.get('data_ini', '').strip()
+    data_fim  = request.GET.get('data_fim', '').strip()
+    busca     = request.GET.get('busca', '').strip()
+
+    if etiqueta:
+        qs = qs.filter(etiqueta=etiqueta)
+    if status:
+        qs = qs.filter(status=status)
+    if atendente:
+        qs = qs.filter(atendente__username=atendente)
+    if data_ini:
+        qs = qs.filter(data_abertura__date__gte=data_ini)
+    if data_fim:
+        qs = qs.filter(data_abertura__date__lte=data_fim)
+    if busca:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(id__icontains=busca) |
+            Q(nome_usuario__username__icontains=busca) |
+            Q(problema__icontains=busca)
+        )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Chamados'
+
+    cabecalho = ['ID', 'Solicitante', 'Local', 'Categoria', 'Etiqueta',
+                 'Descrição', 'Status', 'Data Abertura', 'Data Fechamento', 'Atendente']
+
+    header_fill = PatternFill('solid', fgColor='1E40AF')
+    header_font = Font(bold=True, color='FFFFFF')
+
+    for col, titulo in enumerate(cabecalho, start=1):
+        cell = ws.cell(row=1, column=col, value=titulo)
+        cell.fill   = header_fill
+        cell.font   = header_font
+        cell.alignment = Alignment(horizontal='center')
+
+    for row_idx, c in enumerate(qs.order_by('-data_abertura'), start=2):
+        ws.cell(row=row_idx, column=1,  value=c.id)
+        ws.cell(row=row_idx, column=2,  value=c.nome_usuario.get_full_name() or c.nome_usuario.username)
+        ws.cell(row=row_idx, column=3,  value=c.local)
+        ws.cell(row=row_idx, column=4,  value=c.categoria)
+        ws.cell(row=row_idx, column=5,  value=c.etiqueta)
+        ws.cell(row=row_idx, column=6,  value=c.problema)
+        ws.cell(row=row_idx, column=7,  value=c.status)
+        ws.cell(row=row_idx, column=8,  value=c.data_abertura.strftime('%d/%m/%Y %H:%M'))
+        ws.cell(row=row_idx, column=9,  value=c.data_fechamento.strftime('%d/%m/%Y %H:%M') if c.data_fechamento else '')
+        ws.cell(row=row_idx, column=10, value=c.atendente.username if c.atendente else '')
+
+    # Auto ajuste de colunas
+    for col in ws.columns:
+        max_len = max((len(str(cell.value or '')) for cell in col), default=0)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 50)
+
+    filename = f'relatorio_chamados_{date.today().strftime("%Y_%m_%d")}.xlsx'
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+@login_required
+def detalhe_chamado_ajax(request, pk):
+    chamado = get_object_or_404(Chamado, pk=pk)
+    
+    # Segurança
+    if request.user.tipo == 'comum' and chamado.nome_usuario != request.user:
+        return JsonResponse({'error': 'Acesso negado'}, status=403)
+
+    data = {
+        'id': chamado.id,
+        'problema': chamado.problema,
+        'nome_usuario': str(chamado.nome_usuario),
+        'local': chamado.local,
+        'categoria': chamado.categoria,
+        'tipo': chamado.get_tipo_display(),
+        'etiqueta': chamado.etiqueta,
+        'status': chamado.status,
+        'data_abertura': chamado.data_abertura.strftime("%d/%m/%Y %H:%M"),
+        'atendente': str(chamado.atendente) if chamado.atendente else 'Não atribuído',
+    }
+    
     return JsonResponse(data)

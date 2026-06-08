@@ -56,7 +56,7 @@ body.dark-mode .kanban-column {
     border-radius: 8px;
     margin-bottom: 12px;
     text-align: center;
-    color: white;
+    color:#1e2937;
     background: linear-gradient(135deg, #1e40af, #3b82f6);
 }
 
@@ -136,4 +136,44 @@ body.dark-mode .modal-header {
 
 body.dark-mode .modal-body {
     color: #e2e8f0;
+}
+
+
+/* Modal*/
+.modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+}
+
+body.dark-mode .modal-content {
+    background: #1e2937;
+}
+
+.modal-header {
+    border-bottom: 1px solid #e2e8f0;
+}
+
+body.dark-mode .modal-header {
+    border-bottom: 1px solid #334155;
+}
+
+.modal-descricao {
+    background: #f8f9fa;
+    border: 1px solid #e2e8f0;
+}
+
+body.dark-mode .modal-descricao {
+    background: #334155;
+    border: 1px solid #475569;
+    color: #e2e8f0;
+}
+
+.modal-body th {
+    color: #64748b;
+    font-weight: 500;
+}
+
+body.dark-mode .modal-body th {
+    color: #94a3b8;
 }

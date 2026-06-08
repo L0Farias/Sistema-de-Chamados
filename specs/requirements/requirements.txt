@@ -16,6 +16,3 @@ Pillow==11.2.1
 
 # Desenvolvimento
 django-debug-toolbar==5.1.0
-
-# Exportação Excel
-openpyxl==3.1.5

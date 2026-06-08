@@ -41,12 +41,21 @@ class Chamado(models.Model):
         ('solicitacao', 'Solicitação'),
     ]
 
+    ETIQUETA_CHOICES = [
+        ('Problema', 'Problema'),
+        ('Solicitação', 'Solicitação'),
+        ('Computador Locado', 'Computador Locado'),
+        ('Impressora Locada', 'Impressora Locada'),
+        ('Bug', 'Bug'),
+    ]
+
     nome_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='chamados_abertos', verbose_name="Solicitante")
     local = models.CharField(max_length=100, verbose_name="Local")
     categoria = models.CharField(max_length=100, verbose_name="Categoria")
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, verbose_name="Tipo")
     problema = models.TextField(verbose_name="Descrição do Problema")
-    
+    etiqueta = models.CharField(max_length=30, choices=ETIQUETA_CHOICES, default='Problema', verbose_name="Etiqueta")
+
     data_abertura = models.DateTimeField(default=timezone.now, verbose_name="Data de Abertura")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Novo', verbose_name="Status")
     

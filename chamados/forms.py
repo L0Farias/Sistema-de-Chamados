@@ -60,8 +60,8 @@ class UsuarioComumCreationForm(UserCreationForm):
 # ====================== FORMULÁRIO DE CHAMADO ======================
 class ChamadoForm(forms.ModelForm):
     class Meta:
-        model = Chamado          # ← Aqui estava o erro
-        fields = ['local', 'categoria', 'tipo', 'problema']
+        model = Chamado
+        fields = ['local', 'categoria', 'tipo', 'etiqueta', 'problema']
         widgets = {
             'problema': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Descreva o problema ou solicitação...'}),
             'local': forms.TextInput(attrs={'placeholder': 'Ex: Sala 12, Setor Financeiro'}),
@@ -71,5 +71,6 @@ class ChamadoForm(forms.ModelForm):
             'local': 'Local',
             'categoria': 'Categoria',
             'tipo': 'Tipo de Chamado',
+            'etiqueta': 'Etiqueta',
             'problema': 'Descrição do Problema / Solicitação',
         }
