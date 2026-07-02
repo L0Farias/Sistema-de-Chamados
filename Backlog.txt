@@ -3,3 +3,22 @@ BUG-B01
 Padronizar unicidade case-insensitive do email
 em forms.py
 
+
+
+Sprint 1.1 – Histórico de Chamados:
+
+Corrigir o bug do atendente não ser limpo.
+Criar HistoricoChamado.
+Registrar todas as transições de status.
+Exibir histórico no modal.
+Exportar histórico para Excel.
+Mostrar "Reaberto por" e "Fechado por" nos relatórios. (estado atual de implementação e correção)
+
+
+
+Bug 02 - Mensagens do sistema aparecendo 
+em tela de login e cadastrar usuario ti e comum 
+
+
+implementar futuramente um sistema de segurança de verificação de 
+email valido para evitar pessoas tentando criar emails falsos

@@ -1,25 +1,35 @@
-<!-- templates/chamados/partials/chamado_card.html -->
-<div class="kanban-card" data-id="{{ chamado.id }}" style="cursor: pointer;">
-    <div class="d-flex justify-content-between align-items-start mb-1">
-        <strong>#{{ chamado.id }}</strong>
+<div class="kanban-card" data-id="{{ chamado.id }}" style="cursor:pointer;">
+
+    <div class="d-flex justify-content-between align-items-start mb-2">
+        <strong class="text-sm">#{{ chamado.id }}</strong>
         <span class="badge
-            {% if chamado.etiqueta == 'Bug' %}bg-danger
-            {% elif chamado.etiqueta == 'Problema' %}bg-warning text-dark
-            {% elif chamado.etiqueta == 'Solicitação' %}bg-info text-dark
-            {% elif chamado.etiqueta == 'Computador Locado' %}bg-primary
-            {% elif chamado.etiqueta == 'Impressora Locada' %}bg-secondary
-            {% else %}bg-dark
-            {% endif %}">
-            {{ chamado.etiqueta }}
+            {% if chamado.status == 'Novo' %}bg-primary
+            {% elif chamado.status == 'Triagem' %}bg-warning text-dark
+            {% elif chamado.status == 'Em Atendimento' %}bg-info text-dark
+            {% elif chamado.status == 'Fechado' %}bg-success
+            {% else %}bg-secondary{% endif %}">
+            {{ chamado.status }}
         </span>
     </div>
 
-    <p class="mb-1 fw-medium small">{{ chamado.nome_usuario }}</p>
-    <p class="small text-muted mb-2">{{ chamado.local }} • {{ chamado.categoria }}</p>
+    <p class="mb-1 fw-semibold small">{{ chamado.nome_usuario }}</p>
+    <p class="small text-muted mb-2">{{ chamado.local }} · {{ chamado.categoria }}</p>
 
-    <p class="small text-truncate mb-2" style="max-height: 40px; line-height: 1.35;">
-        {{ chamado.problema }}
-    </p>
+    <p class="small text-truncate mb-2" style="line-height:1.35;">{{ chamado.problema }}</p>
+
+    {% with etiquetas=chamado.etiquetas.all %}
+    {% if etiquetas %}
+    <div class="card-etiquetas-area d-flex flex-wrap gap-1 mb-2">
+        {% for et in etiquetas %}
+        <span class="badge-etiqueta kanban-badge-et"
+              data-cor="{{ et.cor }}"
+              style="background:{{ et.cor }};">{{ et.nome }}</span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card-etiquetas-area d-flex flex-wrap gap-1 mb-2"></div>
+    {% endif %}
+    {% endwith %}
 
     <small class="text-muted">{{ chamado.data_abertura|date:"d/m H:i" }}</small>
 </div>
