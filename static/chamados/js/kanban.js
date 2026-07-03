@@ -152,12 +152,12 @@ function limparEtiquetas(chamadoId) {
 
 // ─── Renderizadores parciais ──────────────────────────────────────────────────
 
-/** Uma linha do grid de informações */
+/** Uma linha do grid de informações com linha pontilhada */
 function infoRow(label, value) {
     const v = (value !== null && value !== undefined && value !== '') ? value : '—';
-    return `
-    <div class="info-grid-row">
+    return `<div class="info-grid-row">
         <span class="info-grid-label">${label}</span>
+        <span class="info-grid-dots"></span>
         <span class="info-grid-value">${v}</span>
     </div>`;
 }
@@ -282,7 +282,7 @@ function renderizarCheckboxEtiquetas(todas, selecionadas) {
     <label class="etiqueta-checkbox-item">
         <input type="checkbox" value="${e.id}" ${checked} style="accent-color:${e.cor};">
         <span class="etiqueta-dot" style="background:${e.cor};"></span>
-        <span style="font-size:.88rem;">${e.nome}</span>
+        <span style="font-size:.78rem;">${e.nome}</span>
     </label>`;
     }).join('');
 }
@@ -417,30 +417,11 @@ window.abrirModalChamado = function(chamadoId) {
     });
 };
 
-// ─── Dark Mode ────────────────────────────────────────────────────────────────
+// ─── Dark Mode — gerenciado por theme.js ─────────────────────────────────────
+// O tema é aplicado pelo theme.js que deve ser carregado junto com kanban.js.
 
 document.addEventListener('DOMContentLoaded', function () {
-    const toggle = document.getElementById('darkModeToggle');
-    const body   = document.body;
-
-    function applyTheme(isDark) {
-        body.classList.toggle('dark-mode', isDark);
-        if (toggle) toggle.innerHTML = isDark
-            ? '<i class="fas fa-sun"></i>'
-            : '<i class="fas fa-moon"></i>';
-    }
-
-    applyTheme(localStorage.getItem('darkMode') === 'true');
-
-    if (toggle) {
-        toggle.addEventListener('click', () => {
-            const isDark = !body.classList.contains('dark-mode');
-            applyTheme(isDark);
-            localStorage.setItem('darkMode', isDark);
-        });
-    }
-
-    // Aplicar cor de texto com contraste correto nos badges dos cards (renderizados pelo Django)
+    // Aplicar cor de texto com contraste correto nos badges dos cards
     aplicarContrasteBadgesCards();
 
     // Abrir modal ao clicar em card

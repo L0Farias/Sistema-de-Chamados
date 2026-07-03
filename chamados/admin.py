@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Usuario, Chamado, MensagemChat, Etiqueta, HistoricoEtiqueta
+from .models import Usuario, Chamado, MensagemChat, Etiqueta, HistoricoEtiqueta, AgendamentoMultimidia
 
 
 @admin.register(Usuario)
@@ -64,3 +64,12 @@ class MensagemChatAdmin(admin.ModelAdmin):
     search_fields = ['autor__username', 'mensagem']
     ordering      = ['-data']
     readonly_fields = ['data']
+
+
+@admin.register(AgendamentoMultimidia)
+class AgendamentoMultimidiaAdmin(admin.ModelAdmin):
+    list_display   = ['id', 'solicitante', 'local', 'data', 'horario_inicio', 'horario_fim', 'status', 'created_at']
+    list_filter    = ['status', 'data']
+    search_fields  = ['solicitante__username', 'local', 'sala', 'setor']
+    ordering       = ['-data', 'horario_inicio']
+    readonly_fields = ['created_at']

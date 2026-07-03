@@ -147,3 +147,48 @@ class MensagemChat(models.Model):
 
     def __str__(self):
         return f"{self.autor} - Chamado #{self.chamado.id}"
+
+
+class AgendamentoMultimidia(models.Model):
+    STATUS_CHOICES = [
+        ('Pendente',  'Pendente'),
+        ('Aprovado',  'Aprovado'),
+        ('Recusado',  'Recusado'),
+        ('Cancelado', 'Cancelado'),
+    ]
+
+    EQUIPAMENTOS_CHOICES = [
+        'Projetor',
+        'Notebook',
+        'Caixa de Som',
+        'Microfone',
+        'TV',
+        'Cabo HDMI',
+        'Outro',
+    ]
+
+    solicitante      = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE,
+        related_name='agendamentos', verbose_name="Solicitante"
+    )
+    setor            = models.CharField(max_length=100, verbose_name="Setor")
+    local            = models.CharField(max_length=200, verbose_name="Local / Sala")
+    sala             = models.CharField(max_length=100, verbose_name="Sala", blank=True)
+    data             = models.DateField(verbose_name="Data do Agendamento")
+    horario_inicio   = models.TimeField(verbose_name="Horário de Início")
+    horario_fim      = models.TimeField(verbose_name="Horário de Fim")
+    equipamentos     = models.JSONField(default=list, verbose_name="Equipamentos Necessários")
+    finalidade       = models.CharField(max_length=300, blank=True, verbose_name="Finalidade")
+    observacoes      = models.TextField(blank=True, verbose_name="Observações")
+    status           = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default='Pendente', verbose_name="Status"
+    )
+    created_at       = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+
+    class Meta:
+        ordering = ['-data', 'horario_inicio']
+        verbose_name = "Agendamento de Multimídia"
+        verbose_name_plural = "Agendamentos de Multimídia"
+
+    def __str__(self):
+        return f"Agendamento #{self.id} — {self.solicitante} em {self.data}"

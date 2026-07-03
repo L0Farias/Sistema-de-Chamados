@@ -32,6 +32,7 @@ urlpatterns = [
     # ── AJAX GERAL ─────────────────────────────────
     path('chamado/<int:pk>/ajax/',          views.detalhe_chamado_ajax, name='detalhe_chamado_ajax'),
     path('load-more-chamados/',             views.load_more_chamados,   name='load_more_chamados'),
+    path('api/kanban/polling/',             views.kanban_polling,       name='kanban_polling'),
 
     # ── AJAX ETIQUETAS ─────────────────────────────
     path('chamado/<int:pk>/etiquetas/',        views.etiquetas_chamado,       name='etiquetas_chamado'),
@@ -42,4 +43,20 @@ urlpatterns = [
     path('relatorios/ajax/',      views.relatorios_ajax,      name='relatorios_ajax'),
     path('relatorios/dashboard/', views.relatorios_dashboard, name='relatorios_dashboard'),
     path('relatorios/exportar/',  views.relatorios_exportar,  name='relatorios_exportar'),
+]
+
+# ── NOVOS MÓDULOS (adicionados na reestruturação modular) ─────────
+urlpatterns += [
+    path('dashboard/',     views.dashboard,              name='dashboard'),
+    path('agendamento/',   views.agendamento_multimidia, name='agendamento_multimidia'),
+    path('configuracoes/', views.configuracoes,          name='configuracoes'),
+
+    # ── AGENDAMENTO — ÁREA DO USUÁRIO COMUM ──────────────────────
+    path('meus-agendamentos/',  views.meus_agendamentos, name='meus_agendamentos'),
+    path('agendamento/novo/',   views.novo_agendamento,  name='novo_agendamento'),
+
+    # ── AGENDAMENTO — AÇÕES DA EQUIPE TI ─────────────────────────
+    path('agendamento/<int:pk>/aprovar/',   views.aprovar_agendamento,  name='aprovar_agendamento'),
+    path('agendamento/<int:pk>/cancelar/',  views.cancelar_agendamento, name='cancelar_agendamento'),
+    path('agendamento/<int:pk>/concluir/',  views.concluir_agendamento, name='concluir_agendamento'),
 ]

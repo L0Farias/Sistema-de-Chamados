@@ -73,3 +73,81 @@ class ChamadoForm(forms.ModelForm):
             'tipo': 'Tipo de Chamado',
             'problema': 'Descrição do Problema / Solicitação',
         }
+
+
+# ====================== FORMULÁRIO DE AGENDAMENTO DE MULTIMÍDIA ======================
+from .models import AgendamentoMultimidia
+import datetime
+
+EQUIPAMENTOS_CHOICES = [
+    ('Projetor',       'Projetor'),
+    ('Notebook',       'Notebook'),
+    ('Caixa de Som',   'Caixa de Som'),
+    ('Microfone',      'Microfone'),
+    ('Outro',          'Outro'),
+]
+
+class AgendamentoMultimidiaForm(forms.Form):
+    setor = forms.CharField(
+        label="Setor",
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Departamento de RH'})
+    )
+    local = forms.CharField(
+        label="Local",
+        max_length=200,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Bloco A, Sala 101'})
+    )
+    sala = forms.CharField(
+        label="Sala",
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Auditório Principal'})
+    )
+    data = forms.DateField(
+        label="Data",
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    horario_inicio = forms.TimeField(
+        label="Horário de Início",
+        widget=forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'})
+    )
+    horario_fim = forms.TimeField(
+        label="Horário de Fim",
+        widget=forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'})
+    )
+    equipamentos = forms.MultipleChoiceField(
+        label="Equipamentos Necessários",
+        choices=EQUIPAMENTOS_CHOICES,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        required=True
+    )
+    finalidade = forms.CharField(
+        label="Finalidade",
+        max_length=300,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Apresentação de resultados'})
+    )
+    observacoes = forms.CharField(
+        label="Observações",
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Informações adicionais...'})
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        data       = cleaned.get('data')
+        h_inicio   = cleaned.get('horario_inicio')
+        h_fim      = cleaned.get('horario_fim')
+        equip      = cleaned.get('equipamentos')
+
+        if data and data < datetime.date.today():
+            self.add_error('data', 'A data não pode ser anterior a hoje.')
+
+        if h_inicio and h_fim and h_fim <= h_inicio:
+            self.add_error('horario_fim', 'O horário de fim deve ser posterior ao horário de início.')
+
+        if not equip:
+            self.add_error('equipamentos', 'Selecione ao menos um equipamento.')
+
+        return cleaned

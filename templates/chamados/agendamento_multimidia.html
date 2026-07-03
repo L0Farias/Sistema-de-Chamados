@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento de Multimídia — TICS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'chamados/css/kanban.css' %}?v=4">
+    <style>
+        /* ── Variáveis de tema ─────────────────────────────────── */
+        :root {
+            --text-primary:   #1e293b;
+            --text-secondary: #64748b;
+            --text-muted:     #94a3b8;
+            --card-bg:        #ffffff;
+            --card-header-bg: #f8fafc;
+            --border-color:   #e2e8f0;
+            --input-bg:       #ffffff;
+            --list-bg:        #f8fafc;
+            --body-bg:        #f4f6f9;
+        }
+        body.dark-mode {
+            --text-primary:   #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted:     #64748b;
+            --card-bg:        #1e293b;
+            --card-header-bg: #273548;
+            --border-color:   #334155;
+            --input-bg:       #1e293b;
+            --list-bg:        #162032;
+            --body-bg:        #0f172a;
+        }
+        body { background: var(--body-bg); color: var(--text-primary); transition: background .3s, color .3s; }
+
+        /* ── Sidebar ─────────────────────────────────────────── */
+        .sidebar{background:#0f172a;min-height:100vh;width:210px;position:fixed;left:0;top:0;color:#cbd5e1;z-index:1000;transition:width .3s;border-right:1px solid rgba(255,255,255,.08);box-shadow:4px 0 10px rgba(0,0,0,.2);}
+        .sidebar.collapsed{width:54px;}
+        .main-content{margin-left:210px;transition:margin-left .3s;padding:58px 16px 16px;min-height:100vh;}
+        .sidebar.collapsed~.main-content{margin-left:54px;}
+        .top-header{background:#1e2937;border-bottom:1px solid #334155;padding:8px 16px;position:fixed;top:0;left:210px;right:0;z-index:999;}
+        .sidebar.collapsed~.top-header{left:54px;}
+        body:not(.dark-mode) .top-header{background:#fff;border-bottom-color:#e2e8f0;color:#1e2937;}
+        body:not(.dark-mode) .top-header h4,body:not(.dark-mode) .top-header span{color:#1e2937;}
+        .sidebar span{transition:opacity .2s,width .2s;overflow:hidden;white-space:nowrap;display:inline-block;}
+        .sidebar.collapsed span{opacity:0;width:0;}
+        .sidebar.collapsed .nav-link{justify-content:center;padding-left:0;padding-right:0;}
+        .sidebar .nav-link{display:flex;align-items:center;gap:10px;}
+        .sidebar .nav-link i{width:18px;text-align:center;flex-shrink:0;}
+        .sidebar-logo{display:flex;align-items:center;gap:10px;font-size:1.2rem;font-weight:700;letter-spacing:.06em;color:#fff;}
+        .sidebar-logo i{font-size:1.25rem;flex-shrink:0;}
+        .sidebar.collapsed .px-4{display:flex;justify-content:center;padding-left:0 !important;padding-right:0 !important;}
+        .sidebar.collapsed .px-4 .sidebar-logo{font-size:0;gap:0;}
+        .sidebar.collapsed .px-4 .sidebar-logo i{font-size:1.25rem;}
+        .sidebar.collapsed .position-absolute.bottom-0{padding-left:4px !important;padding-right:4px !important;}
+        .sidebar.collapsed .position-absolute.bottom-0 .btn{padding-left:0;padding-right:0;display:flex;justify-content:center;}
+        .sidebar .position-absolute.bottom-0 .btn{display:flex;align-items:center;justify-content:center;gap:8px;}
+
+        /* ── Formulário compacto ─────────────────────────────── */
+        label.compact{font-size:.72rem;font-weight:700;margin-bottom:2px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;display:block;}
+        .form-control,.form-select{font-size:.82rem;background:var(--input-bg);color:var(--text-primary);border-color:var(--border-color);}
+        .form-control::placeholder{color:var(--text-muted);}
+        body.dark-mode .form-control:focus,body.dark-mode .form-select:focus{background:var(--input-bg);color:var(--text-primary);border-color:#60a5fa;box-shadow:0 0 0 .2rem rgba(96,165,250,.2);}
+        .eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:4px;}
+        .eq-grid .form-check{background:var(--list-bg);border-radius:6px;padding:4px 8px;border:1px solid var(--border-color);font-size:.74rem;margin:0;color:var(--text-primary);}
+        .form-check-label{color:var(--text-primary);}
+
+        /* ── Cards dos painéis ───────────────────────────────── */
+        .card{background:var(--card-bg);border-color:var(--border-color);color:var(--text-primary);}
+        .card-header{background:var(--card-header-bg);color:var(--text-primary);border-bottom-color:var(--border-color);}
+
+        /* ── Itens de agendamento ────────────────────────────── */
+        .ag-item{
+            background: var(--card-bg);
+            border-radius: 7px;
+            box-shadow: 0 1px 2px rgba(0,0,0,.06);
+            padding: 6px 10px;           /* era 9px 11px — reduzido ~25% */
+            margin-bottom: 5px;          /* era 7px */
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s;
+            border: 1px solid var(--border-color);
+            border-left: 3px solid #78afe6;
+        }
+        .ag-item:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1);}
+        body.dark-mode .ag-item{border-left-color:#60a5fa;}
+        .ag-item .ag-id{font-size:.63rem;font-weight:700;color:var(--text-secondary);font-family:monospace;}
+        .ag-item .ag-sol{font-size:.76rem;font-weight:600;color:var(--text-primary);margin-bottom:1px;line-height:1.3;}
+        .ag-item .ag-meta{font-size:.7rem;color:var(--text-secondary);line-height:1.3;}
+
+        /* ── Área de scroll dos painéis ─────────────────────── */
+        .ag-list{max-height:27vh;overflow-y:auto;padding-right:3px;}  /* era 38vh → reduzido ~29% */
+        .ag-list::-webkit-scrollbar{width:4px;}
+        .ag-list::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:99px;}
+
+        /* ── Cabeçalhos dos painéis ──────────────────────────── */
+        .painel-header{font-size:.76rem;padding:5px 12px;display:flex;align-items:center;gap:6px;}
+        .painel-header .badge{font-size:.6rem;padding:2px 6px;}
+
+        /* ── Modal ───────────────────────────────────────────── */
+        body.dark-mode .modal-content{background:var(--card-bg);color:var(--text-primary);}
+        body.dark-mode .modal-header,body.dark-mode .modal-footer{border-color:var(--border-color);}
+        body.dark-mode .info-grid-value{color:var(--text-primary);}
+        body.dark-mode .btn-close{filter:invert(1);}
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+        <div class="px-4 py-4">
+            <div class="sidebar-logo"><i class="fas fa-tools"></i><span>TICS</span></div>
+        </div>
+        <ul class="nav flex-column mt-3 px-2">
+            {% if user.tipo == 'ti' %}
+            <li class="nav-item"><a href="{% url 'equipe_ti' %}" class="nav-link text-white"><i class="fas fa-columns"></i><span>Kanban</span></a></li>
+            <li class="nav-item"><a href="{% url 'dashboard' %}" class="nav-link text-white"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a></li>
+            <li class="nav-item"><a href="{% url 'relatorios' %}" class="nav-link text-white"><i class="fas fa-table"></i><span>Relatórios</span></a></li>
+            {% endif %}
+            <li class="nav-item"><a href="{% url 'agendamento_multimidia' %}" class="nav-link text-white active"><i class="fas fa-calendar-alt"></i><span>Agendamento</span></a></li>
+            {% if user.tipo == 'ti' %}
+            <li class="nav-item"><a href="{% url 'configuracoes' %}" class="nav-link text-white"><i class="fas fa-cog"></i><span>Configurações</span></a></li>
+            {% endif %}
+        </ul>
+        <div class="position-absolute bottom-0 w-100 p-3 border-top border-secondary">
+            {% if user.tipo == 'ti' %}
+            <a href="{% url 'cadastrar_ti' %}" class="btn btn-success btn-sm w-100 mb-2"><i class="fas fa-user-shield"></i><span>Novo Usuário TI</span></a>
+            {% endif %}
+            <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm w-100"><i class="fas fa-right-from-bracket"></i><span>Sair</span></a>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <div class="top-header" id="topHeader">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary btn-sm" title="Expandir/Recolher menu"><i class="fas fa-bars"></i></button>
+                <h4 class="mb-0 fw-bold">Agendamento de Multimídia</h4>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span>Olá, <strong>{{ user.get_full_name|default:user.username }}</strong></span>
+                <button id="darkModeToggle" class="btn btn-outline-secondary btn-sm"><i class="fas fa-moon"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTEÚDO -->
+    <div class="main-content">
+        <div class="row g-3">
+
+            <!-- ── FORMULÁRIO COMPACTO ── -->
+            <div class="col-xl-5 col-lg-5" style="max-width:41%;">
+                <div class="card shadow-sm" style="border-radius:10px;">
+                    <div class="card-header painel-header fw-semibold">
+                        <i class="fas fa-plus-circle me-2"></i>Novo Agendamento
+                    </div>
+                    <div class="card-body" style="padding:10px 13px;">
+
+                        {% if messages %}
+                            {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} py-1 mb-2" style="font-size:.78rem;">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <form method="POST" id="formAgendamento">
+                            {% csrf_token %}
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="compact">Setor *</label>{{ form.setor }}
+                                    {% if form.setor.errors %}<div class="text-danger" style="font-size:.7rem;">{{ form.setor.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-6">
+                                    <label class="compact">Local *</label>{{ form.local }}
+                                    {% if form.local.errors %}<div class="text-danger" style="font-size:.7rem;">{{ form.local.errors.0 }}</div>{% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-2"><label class="compact">Sala</label>{{ form.sala }}</div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-4">
+                                    <label class="compact">Data *</label>{{ form.data }}
+                                    {% if form.data.errors %}<div class="text-danger" style="font-size:.7rem;">{{ form.data.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-4">
+                                    <label class="compact">Início *</label>{{ form.horario_inicio }}
+                                    {% if form.horario_inicio.errors %}<div class="text-danger" style="font-size:.7rem;">{{ form.horario_inicio.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-4">
+                                    <label class="compact">Fim *</label>{{ form.horario_fim }}
+                                    {% if form.horario_fim.errors %}<div class="text-danger" style="font-size:.7rem;">{{ form.horario_fim.errors.0 }}</div>{% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="compact">Equipamentos *</label>
+                                <div class="eq-grid">{% for cb in form.equipamentos %}<div class="form-check">{{ cb.tag }}<label class="form-check-label" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label></div>{% endfor %}</div>
+                                {% if form.equipamentos.errors %}<div class="text-danger" style="font-size:.7rem;margin-top:3px;">{{ form.equipamentos.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="mb-2"><label class="compact">Finalidade</label>{{ form.finalidade }}</div>
+                            <div class="mb-3"><label class="compact">Observações</label>{{ form.observacoes }}</div>
+                            {% if form.non_field_errors %}<div class="alert alert-danger py-1" style="font-size:.78rem;">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+                            <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-paper-plane me-1"></i>Solicitar Agendamento</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── DOIS CARDS DE LISTAGEM ── -->
+            <div class="col-xl-7 col-lg-7" style="flex:0 0 59%;max-width:59%;">
+                <div class="row g-3">
+
+                    <!-- CARD 1 — Pendentes -->
+                    <div class="col-12">
+                        <div class="card shadow-sm" style="border-radius:10px;">
+                            <div class="card-header painel-header fw-semibold">
+                                📅 Agendamentos Pendentes
+                                <span class="badge bg-warning text-dark">{{ agendamentos_pendentes.count }}</span>
+                            </div>
+                            <div class="card-body ag-list" style="padding:8px 10px;">
+                                {% if agendamentos_pendentes %}
+                                    {% for ag in agendamentos_pendentes %}
+                                    <div class="ag-item" onclick="abrirModalAgendamento({{ ag.id }},'{{ ag.solicitante }}','{{ ag.setor }}','{{ ag.local }}','{{ ag.sala|default:'-' }}','{{ ag.data|date:'d/m/Y' }}','{{ ag.horario_inicio|time:'H:i' }} – {{ ag.horario_fim|time:'H:i' }}','{{ ag.status }}','{% for e in ag.equipamentos %}{{ e }}{% if not forloop.last %}, {% endif %}{% endfor %}','{{ ag.finalidade|default:'' }}','{{ ag.observacoes|default:'' }}')">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <span class="ag-id">#{{ ag.id }}</span>
+                                            <span class="badge rounded-pill {% if ag.status == 'Aprovado' %}bg-success{% elif ag.status == 'Recusado' %}bg-danger{% else %}bg-warning text-dark{% endif %}" style="font-size:.6rem;">{{ ag.status }}</span>
+                                        </div>
+                                        <div class="ag-sol">{{ ag.solicitante }}</div>
+                                        <div class="ag-meta">{{ ag.local }}{% if ag.sala %} · {{ ag.sala }}{% endif %}</div>
+                                        <div class="ag-meta">{{ ag.data|date:"d/m/Y" }} · {{ ag.horario_inicio|time:"H:i" }}–{{ ag.horario_fim|time:"H:i" }}</div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                <div class="text-center text-muted py-3" style="font-size:.82rem;">
+                                    <i class="fas fa-calendar-check d-block mb-1"></i>Nenhum agendamento pendente.
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 2 — Concluídos -->
+                    <div class="col-12">
+                        <div class="card shadow-sm" style="border-radius:10px;">
+                            <div class="card-header painel-header fw-semibold">
+                                ✅ Agendamentos Concluídos
+                                <span class="badge bg-success">{{ agendamentos_concluidos.count }}</span>
+                            </div>
+                            <div class="card-body ag-list" style="padding:8px 10px;">
+                                {% if agendamentos_concluidos %}
+                                    {% for ag in agendamentos_concluidos %}
+                                    <div class="ag-item" style="border-left-color:#22c55e;" onclick="abrirModalAgendamento({{ ag.id }},'{{ ag.solicitante }}','{{ ag.setor }}','{{ ag.local }}','{{ ag.sala|default:'-' }}','{{ ag.data|date:'d/m/Y' }}','{{ ag.horario_inicio|time:'H:i' }} – {{ ag.horario_fim|time:'H:i' }}','{{ ag.status }}','{% for e in ag.equipamentos %}{{ e }}{% if not forloop.last %}, {% endif %}{% endfor %}','{{ ag.finalidade|default:'' }}','{{ ag.observacoes|default:'' }}')">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <span class="ag-id">#{{ ag.id }}</span>
+                                            <span class="badge rounded-pill bg-primary" style="font-size:.6rem;">{{ ag.status }}</span>
+                                        </div>
+                                        <div class="ag-sol">{{ ag.solicitante }}</div>
+                                        <div class="ag-meta">{{ ag.local }}{% if ag.sala %} · {{ ag.sala }}{% endif %}</div>
+                                        <div class="ag-meta">{{ ag.data|date:"d/m/Y" }} · {{ ag.horario_inicio|time:"H:i" }}–{{ ag.horario_fim|time:"H:i" }}</div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                <div class="text-center text-muted py-3" style="font-size:.82rem;">
+                                    <i class="fas fa-flag-checkered d-block mb-1"></i>Nenhum agendamento concluído ainda.
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div><!-- /.row -->
+    </div><!-- /.main-content -->
+
+    <!-- MODAL DE DETALHES -->
+    <div class="modal fade" id="modalAgendamento" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content chamado-modal">
+                <div class="modal-header chamado-header" style="padding:9px 15px;">
+                    <h6 class="modal-title fw-bold">Agendamento <span id="maId"></span></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding:12px 15px;">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <div class="card shadow-sm mb-2" style="border-radius:8px;">
+                                <div class="card-header fw-semibold" style="font-size:.76rem;padding:5px 11px;">📋 Informações</div>
+                                <div class="card-body" style="padding:9px 11px;" id="maInfos"></div>
+                            </div>
+                            <div class="card shadow-sm mb-2" style="border-radius:8px;">
+                                <div class="card-header fw-semibold" style="font-size:.76rem;padding:5px 11px;">🖥 Equipamentos</div>
+                                <div class="card-body" style="padding:9px 11px;" id="maEquipamentos"></div>
+                            </div>
+                            <div class="card shadow-sm mb-2" style="border-radius:8px;" id="maFinalidadeCard">
+                                <div class="card-header fw-semibold" style="font-size:.76rem;padding:5px 11px;">🎯 Finalidade</div>
+                                <div class="card-body" style="padding:9px 11px;font-size:.83rem;" id="maFinalidade"></div>
+                            </div>
+                            <div class="card shadow-sm" style="border-radius:8px;" id="maObsCard">
+                                <div class="card-header fw-semibold" style="font-size:.76rem;padding:5px 11px;">📝 Observações</div>
+                                <div class="card-body" style="padding:9px 11px;font-size:.83rem;" id="maObs"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card shadow-sm mb-2" style="border-radius:8px;">
+                                <div class="card-header fw-semibold" style="font-size:.76rem;padding:5px 11px;">🕒 Histórico</div>
+                                <div class="card-body" style="padding:7px 9px;" id="maHistorico"></div>
+                            </div>
+                            {% if user.tipo == 'ti' %}
+                            <div class="card shadow-sm" style="border-radius:8px;">
+                                <div class="card-header fw-semibold" style="font-size:.76rem;padding:5px 11px;">⚡ Ações</div>
+                                <div class="card-body d-grid gap-2" style="padding:9px 11px;" id="maAcoes"></div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding:7px 14px;">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'chamados/js/theme.js' %}"></script>
+    <script src="{% static 'chamados/js/agendamento.js' %}"></script>
+    <script src="{% static 'chamados/js/sidebar.js' %}?v=2"></script>
+    <script>
+    function infoLinha(label, valor) {
+        const v = valor && String(valor).trim() && valor !== '-' ? valor : '—';
+        return `<div class="info-grid-row"><span class="info-grid-label">${label}</span><span class="info-grid-dots"></span><span class="info-grid-value">${v}</span></div>`;
+    }
+    function statusBadge(status) {
+        const m = { 'Aprovado':'bg-success','Recusado':'bg-danger','Cancelado':'bg-secondary','Concluído':'bg-primary','Pendente':'bg-warning text-dark' };
+        return `<span class="badge rounded-pill ${m[status]||'bg-secondary'}" style="font-size:.7rem;">${status}</span>`;
+    }
+    function getCsrfToken() {
+        for (const c of document.cookie.split(';')) {
+            const t = c.trim();
+            if (t.startsWith('csrftoken=')) return decodeURIComponent(t.slice(10));
+        }
+        return '';
+    }
+    function abrirModalAgendamento(id, solicitante, setor, local, sala, data, horario, status, equipamentos, finalidade, observacoes) {
+        document.getElementById('maId').textContent = '#' + id;
+        document.getElementById('maInfos').innerHTML =
+            '<div class="info-grid-2col"><div class="info-grid-col">' +
+            infoLinha('Solicitante', solicitante) + infoLinha('Setor', setor) +
+            infoLinha('Local', local) + infoLinha('Sala', sala) +
+            '</div><div class="info-grid-col">' +
+            infoLinha('Data', data) + infoLinha('Horário', horario) +
+            infoLinha('Status', statusBadge(status)) + '</div></div>';
+        const eqList = equipamentos ? equipamentos.split(',').map(e=>e.trim()).filter(Boolean) : [];
+        document.getElementById('maEquipamentos').innerHTML = eqList.length
+            ? eqList.map(e=>`<span class="badge bg-secondary me-1 mb-1" style="font-size:.73rem;">${e}</span>`).join('')
+            : '<span class="text-muted" style="font-size:.8rem;">—</span>';
+        const fCard = document.getElementById('maFinalidadeCard');
+        document.getElementById('maFinalidade').textContent = finalidade || '';
+        fCard.style.display = finalidade && finalidade.trim() ? '' : 'none';
+        const oCard = document.getElementById('maObsCard');
+        document.getElementById('maObs').textContent = observacoes || '';
+        oCard.style.display = observacoes && observacoes.trim() ? '' : 'none';
+        let hist = `<div class="timeline-item"><div class="d-flex align-items-center gap-2 mb-1"><span class="timeline-icon">📅</span><span class="timeline-title" style="font-size:.78rem;">Agendamento criado</span></div><div class="timeline-date">${data} ${horario}</div></div>`;
+        if (status==='Aprovado') hist+=`<div class="timeline-item" style="border-left-color:#22c55e;"><div class="d-flex gap-2 mb-1"><span>✅</span><span class="timeline-title" style="font-size:.78rem;">Aprovado</span></div></div>`;
+        else if (status==='Recusado'||status==='Cancelado') hist+=`<div class="timeline-item" style="border-left-color:#ef4444;"><div class="d-flex gap-2 mb-1"><span>❌</span><span class="timeline-title" style="font-size:.78rem;">${status}</span></div></div>`;
+        else if (status==='Concluído') hist+=`<div class="timeline-item" style="border-left-color:#3b82f6;"><div class="d-flex gap-2 mb-1"><span>🏁</span><span class="timeline-title" style="font-size:.78rem;">Concluído</span></div></div>`;
+        document.getElementById('maHistorico').innerHTML = hist;
+        const acoesEl = document.getElementById('maAcoes');
+        if (acoesEl) {
+            let btns = '';
+            if (status==='Pendente') {
+                btns += `<button class="btn btn-success btn-sm" onclick="acaoAg(${id},'aprovar')"><i class="fas fa-check me-1"></i>Aprovar</button>`;
+                btns += `<button class="btn btn-danger btn-sm" onclick="acaoAg(${id},'cancelar')"><i class="fas fa-times me-1"></i>Recusar</button>`;
+            } else if (status==='Aprovado') {
+                btns += `<button class="btn btn-primary btn-sm" onclick="acaoAg(${id},'concluir')"><i class="fas fa-flag-checkered me-1"></i>Concluir</button>`;
+                btns += `<button class="btn btn-secondary btn-sm" onclick="acaoAg(${id},'cancelar')"><i class="fas fa-ban me-1"></i>Cancelar</button>`;
+            }
+            acoesEl.innerHTML = btns || '<span class="text-muted" style="font-size:.76rem;">Nenhuma ação disponível.</span>';
+        }
+        new bootstrap.Modal(document.getElementById('modalAgendamento')).show();
+    }
+    function acaoAg(id, acao) {
+        fetch(`/agendamento/${id}/${acao}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' },
+            credentials: 'same-origin',
+        }).then(res => {
+            if (res.ok || res.redirected) { bootstrap.Modal.getInstance(document.getElementById('modalAgendamento'))?.hide(); window.location.reload(); }
+            else alert('Erro ao executar ação.');
+        }).catch(() => alert('Erro de conexão.'));
+    }
+    </script>
+</body>
+</html>

@@ -1,14 +1,14 @@
 /* ================================================
    KANBAN.CSS  –  Sistema de Chamados TICS
-   Versão limpa: seletores alinhados com o HTML
-   gerado pelo kanban.js via innerHTML
+   Compact UI — ~15% menor sem zoom nem transform
    ================================================ */
 
-/* ── CORES GERAIS ────────────────────────────── */
+/* ── BASE GLOBAL ────────────────────────────── */
 body {
     background: #f4f6f9;
-    color: #212529;
-    transition: background 0.3s, color 0.3s;
+    color: #1e293b;
+    font-size: .9rem;          /* ← redução global discreta */
+    transition: background .3s, color .3s;
 }
 body.dark-mode {
     background: #0f172a;
@@ -18,92 +18,194 @@ body.dark-mode {
 /* ── HEADER ──────────────────────────────────── */
 .top-header {
     background: #ffffff;
-    padding: 12px 20px;
+    padding: 8px 16px;         /* era 12px 20px */
     border-bottom: 1px solid #e2e8f0;
-    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
 }
 body.dark-mode .top-header {
     background: #1e2937 !important;
     border-bottom-color: #334155;
 }
+.top-header h4 {
+    font-size: .95rem;         /* era implícito ~1.25rem */
+    margin-bottom: 0;
+}
 
 /* ── KANBAN BOARD ────────────────────────────── */
+
+/* Container externo: centraliza quando cabe, scroll quando não cabe */
+.kanban-outer {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    overflow-x: auto;
+    padding: 12px 8px;
+}
+
+/* Scrollbar fina e moderna — light mode */
+.kanban-outer::-webkit-scrollbar,
+.cards-container::-webkit-scrollbar { width: 5px; height: 5px; }
+.kanban-outer::-webkit-scrollbar-track,
+.cards-container::-webkit-scrollbar-track { background: transparent; }
+.kanban-outer::-webkit-scrollbar-thumb,
+.cards-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 99px;
+}
+/* Dark mode */
+body.dark-mode .kanban-outer::-webkit-scrollbar-thumb,
+body.dark-mode .cards-container::-webkit-scrollbar-thumb { background: #334155; }
+
 .kanban-wrapper {
     display: flex !important;
-    gap: 14px;
-    overflow-x: auto;
-    padding: 10px 0;
+    gap: 18px;                  /* harmônico: entre 16 e 24 */
     align-items: flex-start;
-}
-.kanban-column {
-    background: #ffffff;
-    border-radius: 12px;
-    min-width: 290px;
-    max-width: 320px;
-    padding: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,.1);
-    display: flex;
-    flex-direction: column;
-    max-height: 82vh;
+    width: fit-content;
     flex-shrink: 0;
 }
-body.dark-mode .kanban-column { background: #1e2937; }
+
+.kanban-column {
+    background: #ffffff;
+    border-radius: 10px;
+    width: 272px;               /* fixo e uniforme */
+    min-width: 272px;
+    max-width: 272px;
+    padding: 8px 8px 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.07);
+    display: flex;
+    flex-direction: column;
+    max-height: 84vh;
+    flex-shrink: 0;
+    border: 1px solid #e2e8f0;
+}
+body.dark-mode .kanban-column {
+    background: #1e2937;
+    border-color: #334155;
+}
+
+/* Coluna "Concluído" vazia: colapsa para não desperdiçar espaço */
+.kanban-column--empty {
+    min-width: 180px;
+    width: 180px;
+    max-width: 180px;
+    opacity: .55;
+}
 
 .column-header {
-    font-weight: 600;
-    padding: 10px 12px;
-    border-radius: 8px;
-    margin-bottom: 12px;
+    font-weight: 700;
+    font-size: .73rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 8px;
     text-align: center;
     color: #fff;
     background: linear-gradient(135deg, #1e40af, #3b82f6);
 }
+
 .cards-container {
     flex-grow: 1;
     overflow-y: auto;
-    padding-right: 6px;
+    padding-right: 3px;
 }
 
 /* ── CARDS DO KANBAN ─────────────────────────── */
 .kanban-card {
     background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.08);
-    padding: 12px;
-    margin-bottom: 10px;
-    transition: transform .2s, box-shadow .2s;
-    border-left: 4px solid #78afe6;
+    border-radius: 7px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    transition: transform .15s ease, box-shadow .15s ease;
+    border-left: 3px solid #94a3b8; /* cor padrão; sobrescrita por status abaixo */
+    cursor: pointer;
+    border: 1px solid #f1f5f9;
+    border-left: 3px solid #94a3b8;
 }
 .kanban-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 18px rgba(0,0,0,.13);
+    box-shadow: 0 4px 12px rgba(0,0,0,.1);
 }
-.kanban-card strong,
-.kanban-card p,
-.kanban-card small { color: #1f2937; }
-.kanban-card .text-muted { color: #64748b !important; }
 
-body.dark-mode .kanban-card {
-    background: #334155;
-    border-left-color: #60a5fa;
+/* Border-left colorida por status — hierarquia visual elegante */
+.kanban-card[data-status="Novo"]           { border-left-color: #3b82f6; }  /* azul    */
+.kanban-card[data-status="Triagem"]        { border-left-color: #f97316; }  /* laranja */
+.kanban-card[data-status="Em Atendimento"] { border-left-color: #22c55e; }  /* verde   */
+.kanban-card[data-status="Fechado"]        { border-left-color: #94a3b8; }  /* cinza   */
+
+/* Hierarquia tipográfica dentro do card */
+.card-id {
+    font-size: .68rem;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: .03em;
+    font-family: monospace;
 }
-body.dark-mode .kanban-card strong,
-body.dark-mode .kanban-card p,
-body.dark-mode .kanban-card small { color: #e2e8f0; }
-body.dark-mode .kanban-card .text-muted { color: #94a3b8 !important; }
+.card-usuario {
+    font-size: .8rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 2px;
+    line-height: 1.3;
+}
+.card-local-cat {
+    font-size: .72rem;
+    color: #64748b;
+    margin-bottom: 3px;
+}
+.card-descricao {
+    font-size: .72rem;
+    color: #475569;
+    line-height: 1.4;
+    /* 2 linhas com ellipsis */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+.card-data {
+    font-size: .67rem;
+    color: #94a3b8;
+}
+
+/* Dark mode — cards */
+body.dark-mode .kanban-card {
+    background: #1e293b;
+    border-color: #334155;
+    border-left-color: #94a3b8; /* padrão */
+}
+body.dark-mode .kanban-card[data-status="Novo"]           { border-left-color: #60a5fa; }
+body.dark-mode .kanban-card[data-status="Triagem"]        { border-left-color: #fb923c; }
+body.dark-mode .kanban-card[data-status="Em Atendimento"] { border-left-color: #4ade80; }
+body.dark-mode .kanban-card[data-status="Fechado"]        { border-left-color: #64748b; }
+
+body.dark-mode .card-usuario  { color: #e2e8f0; }
+body.dark-mode .card-local-cat { color: #94a3b8; }
+body.dark-mode .card-descricao { color: #94a3b8; }
+body.dark-mode .card-data      { color: #64748b; }
+
+/* Animação de entrada para novos cards (polling) */
+@keyframes cardSlideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+.kanban-card-new {
+    animation: cardSlideIn .3s ease forwards;
+    box-shadow: 0 0 0 2px #3b82f6;
+}
 
 /* ── MODAL WRAPPER ───────────────────────────── */
-/* Essas classes são aplicadas diretamente pelo kanban.js
-   no modal-content e modal-header */
 .chamado-modal {
     border: none;
-    border-radius: 16px;
+    border-radius: 14px;
     overflow: hidden;
 }
 .chamado-header {
     background: #f8fafc;
     border-bottom: 1px solid #e2e8f0;
-    padding: 16px 20px;
+    padding: 12px 16px;        /* era 16px 20px */
 }
 body.dark-mode .chamado-modal {
     background: #0f172a;
@@ -121,7 +223,6 @@ body.dark-mode .modal-footer {
 body.dark-mode .btn-close { filter: invert(1); }
 
 /* ── CARDS INTERNOS DO MODAL ─────────────────── */
-/* O JS gera: <div class="card shadow-sm ..."> */
 body.dark-mode .card {
     background: #1e293b !important;
     border-color: #334155 !important;
@@ -141,7 +242,7 @@ body.dark-mode .card-body span,
 body.dark-mode .card-body strong,
 body.dark-mode .card-body small { color: #e2e8f0 !important; }
 
-/* ── SEÇÃO DE INFORMAÇÕES — Grid duas colunas (GLPI/Jira style) ── */
+/* ── SEÇÃO DE INFORMAÇÕES — Layout pontilhado ── */
 .info-grid-2col {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -150,112 +251,121 @@ body.dark-mode .card-body small { color: #e2e8f0 !important; }
 @media (max-width: 576px) {
     .info-grid-2col { grid-template-columns: 1fr; }
 }
-.info-grid-col {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
+.info-grid-col { display: flex; flex-direction: column; }
+
 .info-grid-row {
-    display: grid;
-    grid-template-columns: 130px 1fr;
-    align-items: start;
-    padding: 7px 0;
+    display: flex;
+    align-items: baseline;
+    padding: 5px 0;
     border-bottom: 1px solid #f1f5f9;
-    gap: 8px;
+    gap: 0;
+    min-height: 28px;
 }
 .info-grid-row:last-child { border-bottom: none; }
 
 .info-grid-label {
-    font-weight: 600;
-    font-size: .8rem;
+    font-weight: 700;
+    font-size: .73rem;
     color: #64748b;
     text-transform: uppercase;
-    letter-spacing: .03em;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 92px;
     line-height: 1.4;
-    padding-top: 1px;
+}
+.info-grid-dots {
+    flex: 1;
+    border-bottom: 1.5px dotted #cbd5e1;
+    margin: 0 6px 3px 5px;
+    min-width: 10px;
+    align-self: flex-end;
 }
 .info-grid-value {
-    font-size: .88rem;
+    font-size: .82rem;
     color: #1e293b;
-    font-weight: 400;
+    font-weight: 500;
     line-height: 1.5;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
 }
 
 body.dark-mode .info-grid-row  { border-bottom-color: #1e293b; }
 body.dark-mode .info-grid-label { color: #94a3b8; }
+body.dark-mode .info-grid-dots  { border-bottom-color: #334155; }
 body.dark-mode .info-grid-value { color: #e2e8f0; }
 
 /* ── TIMELINE DO HISTÓRICO ───────────────────── */
 .timeline-item {
     border-left: 3px solid #3b82f6;
-    padding: 10px 14px;
-    margin-bottom: 10px;
-    border-radius: 0 8px 8px 0;
+    padding: 7px 11px;         /* era 10px 14px */
+    margin-bottom: 7px;
+    border-radius: 0 7px 7px 0;
     background: #f8fafc;
 }
-.timeline-icon { font-size: .9rem; }
-.timeline-title { font-weight: 600; font-size: .88rem; }
-.timeline-sub   { font-size: .8rem;  color: #64748b; }
-.timeline-date  { font-size: .75rem; color: #94a3b8; }
+.timeline-icon  { font-size: .82rem; }
+.timeline-title { font-weight: 600; font-size: .82rem; }
+.timeline-sub   { font-size: .75rem; color: #64748b; }
+.timeline-date  { font-size: .7rem;  color: #94a3b8; }
 
-body.dark-mode .timeline-item {
-    background: #162032;
-    border-left-color: #3b82f6;
-}
-body.dark-mode .timeline-sub  { color: #94a3b8; }
-body.dark-mode .timeline-date { color: #64748b; }
+body.dark-mode .timeline-item    { background: #162032; }
+body.dark-mode .timeline-sub     { color: #94a3b8; }
+body.dark-mode .timeline-date    { color: #64748b; }
 
 /* ── BADGES DE ETIQUETA ──────────────────────── */
+/* Modal (JS) */
 .badge-etiqueta {
-    font-size: .75rem;
-    padding: 3px 9px;
-    border-radius: 20px;
+    display: inline-block;
+    font-size: .65rem;
+    padding: 2px 7px;
+    border-radius: 99px;
     font-weight: 600;
     letter-spacing: .02em;
-    display: inline-block;
-    line-height: 1.4;
+    line-height: 1.45;
+    white-space: nowrap;
+    border: 1px solid transparent;
 }
-
-/* Badges nos cards do Kanban — cor de texto calculada via JS no DOMContentLoaded */
+/* Cards Kanban (Django template) */
 .kanban-badge-et {
-    font-size: .72rem;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-weight: 600;
     display: inline-block;
-    line-height: 1.4;
-    /* cor do texto definida por JS via data-cor */
+    font-size: .6rem;
+    padding: 1px 6px;
+    border-radius: 99px;
+    font-weight: 600;
+    line-height: 1.45;
+    white-space: nowrap;
 }
 
-/* ── FORMULÁRIO DE ETIQUETAS (checkboxes) ─────── */
+/* ── FORMULÁRIO DE ETIQUETAS ─────────────────── */
 .etiqueta-checkbox-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    max-height: 240px;
+    gap: 4px;
+    max-height: 220px;
     overflow-y: auto;
-    padding: 4px 0;
+    padding: 3px 0;
 }
 .etiqueta-checkbox-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 8px;
-    border-radius: 6px;
+    gap: 8px;
+    padding: 5px 7px;
+    border-radius: 5px;
     cursor: pointer;
-    transition: background .15s;
+    transition: background .12s;
 }
 .etiqueta-checkbox-item:hover { background: #f1f5f9; }
 body.dark-mode .etiqueta-checkbox-item:hover { background: #273548; }
 .etiqueta-dot {
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
 }
 
-/* ── SELECTS DARK MODE ───────────────────────── */
+/* ── SELECTS / INPUTS DARK MODE ──────────────── */
 body.dark-mode .form-select,
 body.dark-mode .form-control {
     background-color: #1e293b;
@@ -263,3 +373,107 @@ body.dark-mode .form-control {
     border-color: #334155;
 }
 body.dark-mode .form-select option { background: #1e293b; color: #e2e8f0; }
+
+/* ── NOTIFICAÇÃO DE NOVO CHAMADO ─────────────── */
+#kanban-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 240px;
+    font-size: .83rem;
+}
+
+/* Largura do modal: ~10% menor que o padrão Bootstrap modal-xl (1140px → 1030px) */
+@media (min-width: 1200px) {
+    #detalheModal .modal-dialog { max-width: 1030px; }
+}
+
+/* ══════════════════════════════════════════════
+   MODAL COMPACTO — mesmo conteúdo, menos espaço
+   Inspirado em Jira / Azure DevOps
+   ══════════════════════════════════════════════ */
+
+/* Cabeçalho do modal */
+.chamado-header {
+    padding: 9px 14px;        /* era 12px 16px */
+}
+.chamado-header .modal-title {
+    font-size: .88rem;
+    font-weight: 700;
+}
+
+/* Corpo do modal — padding reduzido */
+.modal-body .container-fluid {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-top: 10px !important;
+    padding-bottom: 6px !important;
+}
+
+/* Gap entre colunas do modal */
+.modal-body .row.g-3 { --bs-gutter-y: .6rem; --bs-gutter-x: .75rem; }
+
+/* Cards internos — menos espaçamento */
+.modal-body .card.shadow-sm { margin-bottom: .5rem !important; }
+.modal-body .card.shadow-sm:last-child { margin-bottom: 0 !important; }
+
+.modal-body .card-header.fw-semibold {
+    padding: 6px 12px;         /* era padrão Bootstrap 12px 16px */
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+.modal-body .card-body {
+    padding: 8px 12px;         /* era padrão Bootstrap 16px */
+}
+.modal-body .card-body.p-2 {
+    padding: 6px 10px !important;
+}
+
+/* Badges do topo do modal — área compacta */
+.modal-body .container-fluid > div:first-child {
+    margin-bottom: .5rem !important; /* era mb-3 = 1rem */
+    gap: .3rem !important;
+}
+
+/* Seção de informações — linhas mais compactas */
+.info-grid-2col     { gap: 0 16px; }      /* era 24px */
+.info-grid-row      { padding: 3px 0; min-height: 24px; }   /* era 5px / 28px */
+.info-grid-label    { font-size: .69rem; min-width: 82px; }  /* era .73rem / 92px */
+.info-grid-value    { font-size: .78rem; max-width: 130px; } /* era .82rem / 150px */
+.info-grid-dots     { margin: 0 5px 2px 4px; }               /* era 0 6px 3px 5px */
+
+/* Timeline — eventos mais compactos */
+.timeline-item      { padding: 5px 9px; margin-bottom: 5px; } /* era 7px 11px / 7px */
+.timeline-icon      { font-size: .76rem; }   /* era .82rem */
+.timeline-title     { font-size: .76rem; }   /* era .82rem */
+.timeline-sub       { font-size: .7rem; }    /* era .75rem */
+.timeline-date      { font-size: .65rem; }   /* era .7rem  */
+
+/* Checkboxes de etiquetas */
+.etiqueta-checkbox-list  { gap: 2px; max-height: 180px; }    /* era 4px / 220px */
+.etiqueta-checkbox-item  { padding: 3px 6px; gap: 7px; }     /* era 5px 7px / 8px */
+.etiqueta-checkbox-item span[style] { font-size: .78rem; }   /* label do checkbox */
+.etiqueta-dot            { width: 9px; height: 9px; }         /* era 10px */
+
+/* Botões dentro do modal */
+.modal-body .btn-sm {
+    padding: 3px 10px;
+    font-size: .75rem;
+}
+.modal-footer {
+    padding: 8px 14px;         /* era padrão Bootstrap */
+}
+.modal-footer .btn {
+    padding: 4px 14px;
+    font-size: .78rem;
+}
+
+/* Selects e inputs compactos */
+.modal-body .form-select,
+.modal-body .form-control {
+    font-size: .8rem;
+    padding: 4px 8px;
+}

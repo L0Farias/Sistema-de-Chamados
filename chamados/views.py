@@ -7,8 +7,8 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.utils import timezone
-from .forms import LoginForm, UsuarioComumCreationForm, ChamadoForm
-from .models import Chamado, MensagemChat, Etiqueta, HistoricoEtiqueta
+from .forms import LoginForm, UsuarioComumCreationForm, ChamadoForm, AgendamentoMultimidiaForm
+from .models import Chamado, MensagemChat, Etiqueta, HistoricoEtiqueta, AgendamentoMultimidia
 
 
 # ──────────────────────────────────────────
@@ -421,6 +421,66 @@ def load_more_chamados(request):
 
 
 # ──────────────────────────────────────────
+#  AJAX — POLLING DO KANBAN
+# ──────────────────────────────────────────
+
+@login_required
+def kanban_polling(request):
+    """
+    Retorna chamados alterados desde `since` (ISO timestamp ou ID).
+    O frontend envia ?since=<timestamp_iso> e recebe somente mudanças.
+    """
+    if request.user.tipo != 'ti':
+        return JsonResponse({'error': 'Acesso negado'}, status=403)
+
+    since_str = request.GET.get('since', '')
+    qs = (
+        Chamado.objects
+        .select_related('nome_usuario', 'atendente')
+        .prefetch_related('etiquetas')
+        .order_by('-data_abertura')
+    )
+
+    if since_str:
+        from datetime import datetime
+        try:
+            # Aceita ISO 8601 enviado pelo JS (Date.toISOString)
+            since_dt = datetime.fromisoformat(since_str.replace('Z', '+00:00'))
+            qs = qs.filter(data_abertura__gt=since_dt) | qs.filter(data_atendimento__gt=since_dt) | qs.filter(data_fechamento__gt=since_dt) | qs.filter(data_reabertura__gt=since_dt) | qs.filter(data_triagem__gt=since_dt)
+            qs = qs.distinct()
+        except (ValueError, AttributeError):
+            pass
+
+    chamados_data = []
+    for c in qs:
+        chamados_data.append({
+            'id':            c.id,
+            'status':        c.status,
+            'nome_usuario':  c.nome_usuario.get_full_name() or c.nome_usuario.username,
+            'local':         c.local,
+            'categoria':     c.categoria,
+            'problema':      c.problema,
+            'data_abertura': c.data_abertura.strftime('%d/%m/%Y %H:%M'),
+            'etiquetas':     [{'nome': e.nome, 'cor': e.cor} for e in c.etiquetas.all()],
+        })
+
+    # Contadores sempre atualizados
+    todos = Chamado.objects
+    contadores = {
+        'triagem':     todos.filter(status__in=['Novo', 'Triagem']).count(),
+        'atendimento': todos.filter(status='Em Atendimento').count(),
+        'concluido':   todos.filter(status='Fechado').count(),
+    }
+
+    from django.utils.timezone import now
+    return JsonResponse({
+        'chamados':   chamados_data,
+        'contadores': contadores,
+        'timestamp':  now().isoformat(),
+    })
+
+
+# ──────────────────────────────────────────
 #  RELATÓRIOS
 # ──────────────────────────────────────────
 
@@ -601,3 +661,172 @@ def relatorios_exportar(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
+
+
+# ──────────────────────────────────────────
+#  DASHBOARD
+# ──────────────────────────────────────────
+
+@login_required
+def dashboard(request):
+    """Página de Dashboard — KPIs e gráficos gerenciais."""
+    if request.user.tipo != 'ti':
+        messages.error(request, 'Acesso negado.')
+        return redirect('usuario_comum')
+
+    total_abertos     = Chamado.objects.exclude(status='Fechado').count()
+    total_triagem     = Chamado.objects.filter(status__in=['Novo', 'Triagem']).count()
+    total_atendimento = Chamado.objects.filter(status='Em Atendimento').count()
+    total_fechados    = Chamado.objects.filter(status='Fechado').count()
+
+    return render(request, 'chamados/dashboard.html', {
+        'user':              request.user,
+        'total_abertos':     total_abertos,
+        'total_triagem':     total_triagem,
+        'total_atendimento': total_atendimento,
+        'total_fechados':    total_fechados,
+    })
+
+
+# ──────────────────────────────────────────
+#  AGENDAMENTO DE MULTIMÍDIA
+# ──────────────────────────────────────────
+
+@login_required
+def agendamento_multimidia(request):
+    """Página de agendamento de equipamentos multimídia."""
+    form = AgendamentoMultimidiaForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        cd = form.cleaned_data
+        AgendamentoMultimidia.objects.create(
+            solicitante    = request.user,
+            setor          = cd['setor'],
+            local          = cd['local'],
+            sala           = cd.get('sala', ''),
+            data           = cd['data'],
+            horario_inicio = cd['horario_inicio'],
+            horario_fim    = cd['horario_fim'],
+            equipamentos   = cd['equipamentos'],
+            finalidade     = cd.get('finalidade', ''),
+            observacoes    = cd.get('observacoes', ''),
+            status         = 'Pendente',
+        )
+        messages.success(request, 'Agendamento enviado com sucesso! Aguarde aprovação.')
+        return redirect('agendamento_multimidia')
+
+    # Listagem: TI vê todos; comum vê só os seus
+    if request.user.tipo == 'ti':
+        base_qs = AgendamentoMultimidia.objects.select_related('solicitante').order_by('-data', 'horario_inicio')
+    else:
+        base_qs = AgendamentoMultimidia.objects.filter(solicitante=request.user).order_by('-data', 'horario_inicio')
+
+    agendamentos_pendentes  = base_qs.exclude(status='Concluído')
+    agendamentos_concluidos = base_qs.filter(status='Concluído')
+
+    return render(request, 'chamados/agendamento_multimidia.html', {
+        'user':                   request.user,
+        'form':                   form,
+        'agendamentos_pendentes':  agendamentos_pendentes,
+        'agendamentos_concluidos': agendamentos_concluidos,
+    })
+
+
+# ──────────────────────────────────────────
+#  CONFIGURAÇÕES (placeholder)
+# ──────────────────────────────────────────
+
+@login_required
+def configuracoes(request):
+    """Placeholder — expansão futura."""
+    if request.user.tipo != 'ti':
+        messages.error(request, 'Acesso negado.')
+        return redirect('usuario_comum')
+    return render(request, 'chamados/configuracoes.html', {'user': request.user})
+
+
+# ──────────────────────────────────────────
+#  AGENDAMENTO — ÁREA DO USUÁRIO COMUM
+# ──────────────────────────────────────────
+
+@login_required
+def meus_agendamentos(request):
+    """Página de agendamentos do usuário comum — visualiza apenas os seus."""
+    agendamentos = (
+        AgendamentoMultimidia.objects
+        .filter(solicitante=request.user)
+        .order_by('-data', 'horario_inicio')
+    )
+    return render(request, 'chamados/meus_agendamentos.html', {
+        'user': request.user,
+        'agendamentos': agendamentos,
+    })
+
+
+@login_required
+def novo_agendamento(request):
+    """Formulário exclusivo para o usuário comum criar um agendamento."""
+    form = AgendamentoMultimidiaForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        cd = form.cleaned_data
+        AgendamentoMultimidia.objects.create(
+            solicitante    = request.user,
+            setor          = cd['setor'],
+            local          = cd['local'],
+            sala           = cd.get('sala', ''),
+            data           = cd['data'],
+            horario_inicio = cd['horario_inicio'],
+            horario_fim    = cd['horario_fim'],
+            equipamentos   = list(cd['equipamentos']),
+            finalidade     = cd.get('finalidade', ''),
+            observacoes    = cd.get('observacoes', ''),
+            status         = 'Pendente',
+        )
+        messages.success(request, 'Agendamento solicitado com sucesso! Aguarde aprovação da equipe TI.')
+        return redirect('meus_agendamentos')
+
+    return render(request, 'chamados/novo_agendamento.html', {
+        'user': request.user,
+        'form': form,
+    })
+
+
+# ──────────────────────────────────────────
+#  AGENDAMENTO — AÇÕES DA EQUIPE TI
+# ──────────────────────────────────────────
+
+@login_required
+@require_POST
+def aprovar_agendamento(request, pk):
+    if request.user.tipo != 'ti':
+        return JsonResponse({'error': 'Acesso negado'}, status=403)
+    ag = get_object_or_404(AgendamentoMultimidia, pk=pk)
+    ag.status = 'Aprovado'
+    ag.save()
+    messages.success(request, f'Agendamento #{pk} aprovado.')
+    return redirect('agendamento_multimidia')
+
+
+@login_required
+@require_POST
+def cancelar_agendamento(request, pk):
+    if request.user.tipo != 'ti':
+        return JsonResponse({'error': 'Acesso negado'}, status=403)
+    ag = get_object_or_404(AgendamentoMultimidia, pk=pk)
+    ag.status = 'Cancelado'
+    ag.save()
+    messages.success(request, f'Agendamento #{pk} cancelado.')
+    return redirect('agendamento_multimidia')
+
+
+@login_required
+@require_POST
+def concluir_agendamento(request, pk):
+    if request.user.tipo != 'ti':
+        return JsonResponse({'error': 'Acesso negado'}, status=403)
+    ag = get_object_or_404(AgendamentoMultimidia, pk=pk)
+    ag.status = 'Concluído'
+    ag.save()
+    messages.success(request, f'Agendamento #{pk} concluído.')
+    return redirect('agendamento_multimidia')

@@ -1,35 +1,46 @@
-<div class="kanban-card" data-id="{{ chamado.id }}" style="cursor:pointer;">
+<div class="kanban-card"
+     data-id="{{ chamado.id }}"
+     data-status="{{ chamado.status }}"
+     style="cursor:pointer;">
 
-    <div class="d-flex justify-content-between align-items-start mb-2">
-        <strong class="text-sm">#{{ chamado.id }}</strong>
-        <span class="badge
+    <!-- Linha 1: ID  ·  badge status -->
+    <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="card-id">#{{ chamado.id }}</span>
+        <span class="badge rounded-pill
             {% if chamado.status == 'Novo' %}bg-primary
             {% elif chamado.status == 'Triagem' %}bg-warning text-dark
-            {% elif chamado.status == 'Em Atendimento' %}bg-info text-dark
-            {% elif chamado.status == 'Fechado' %}bg-success
-            {% else %}bg-secondary{% endif %}">
+            {% elif chamado.status == 'Em Atendimento' %}bg-success
+            {% elif chamado.status == 'Fechado' %}bg-secondary
+            {% else %}bg-secondary{% endif %}"
+            style="font-size:.6rem;padding:2px 7px;">
             {{ chamado.status }}
         </span>
     </div>
 
-    <p class="mb-1 fw-semibold small">{{ chamado.nome_usuario }}</p>
-    <p class="small text-muted mb-2">{{ chamado.local }} · {{ chamado.categoria }}</p>
+    <!-- Linha 2: Nome do solicitante (mais destaque) -->
+    <div class="card-usuario">{{ chamado.nome_usuario }}</div>
 
-    <p class="small text-truncate mb-2" style="line-height:1.35;">{{ chamado.problema }}</p>
+    <!-- Linha 3: Local · Categoria (menor, secundário) -->
+    <div class="card-local-cat">{{ chamado.local }}{% if chamado.local and chamado.categoria %} · {% endif %}{{ chamado.categoria }}</div>
 
+    <!-- Linha 4: Descrição — 2 linhas com ellipsis -->
+    <div class="card-descricao">{{ chamado.problema }}</div>
+
+    <!-- Linha 5: Etiquetas (só se existirem) -->
     {% with etiquetas=chamado.etiquetas.all %}
     {% if etiquetas %}
-    <div class="card-etiquetas-area d-flex flex-wrap gap-1 mb-2">
+    <div class="card-etiquetas-area d-flex flex-wrap gap-1 mb-1">
         {% for et in etiquetas %}
-        <span class="badge-etiqueta kanban-badge-et"
+        <span class="kanban-badge-et"
               data-cor="{{ et.cor }}"
               style="background:{{ et.cor }};">{{ et.nome }}</span>
         {% endfor %}
     </div>
     {% else %}
-    <div class="card-etiquetas-area d-flex flex-wrap gap-1 mb-2"></div>
+    <div class="card-etiquetas-area"></div>
     {% endif %}
     {% endwith %}
 
-    <small class="text-muted">{{ chamado.data_abertura|date:"d/m H:i" }}</small>
+    <!-- Linha 6: Data (menor, mais fraco) -->
+    <div class="card-data">{{ chamado.data_abertura|date:"d/m H:i" }}</div>
 </div>

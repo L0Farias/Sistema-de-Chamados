@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novo Agendamento — TICS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        .equipamentos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 6px;
+        }
+        .equipamentos-grid .form-check {
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 7px 10px;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body class="bg-light">
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📅 Novo Agendamento de Multimídia</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'meus_agendamentos' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-list"></i> Meus Agendamentos
+            </a>
+            <a href="{% url 'usuario_comum' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header fw-semibold">
+                    <i class="fas fa-plus-circle me-2"></i>Preencha os dados do agendamento
+                </div>
+                <div class="card-body">
+
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} py-2">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST" id="formAgendamento">
+                        {% csrf_token %}
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Setor *</label>
+                                {{ form.setor }}
+                                {% if form.setor.errors %}<div class="text-danger small mt-1">{{ form.setor.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Local *</label>
+                                {{ form.local }}
+                                {% if form.local.errors %}<div class="text-danger small mt-1">{{ form.local.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Sala</label>
+                            {{ form.sala }}
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Data *</label>
+                                {{ form.data }}
+                                {% if form.data.errors %}<div class="text-danger small mt-1">{{ form.data.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Horário de Início *</label>
+                                {{ form.horario_inicio }}
+                                {% if form.horario_inicio.errors %}<div class="text-danger small mt-1">{{ form.horario_inicio.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Horário de Fim *</label>
+                                {{ form.horario_fim }}
+                                {% if form.horario_fim.errors %}<div class="text-danger small mt-1">{{ form.horario_fim.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Equipamentos Necessários *</label>
+                            <div class="equipamentos-grid">
+                                {% for checkbox in form.equipamentos %}
+                                <div class="form-check">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label small" for="{{ checkbox.id_for_label }}">
+                                        {{ checkbox.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.equipamentos.errors %}<div class="text-danger small mt-1">{{ form.equipamentos.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Finalidade</label>
+                            {{ form.finalidade }}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Observações</label>
+                            {{ form.observacoes }}
+                        </div>
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger py-2">
+                            {% for e in form.non_field_errors %}<div>• {{ e }}</div>{% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'meus_agendamentos' %}" class="btn btn-secondary">
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i> Enviar Solicitação
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% load static %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'chamados/js/agendamento.js' %}"></script>
+</body>
+</html>
