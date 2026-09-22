@@ -21,3 +21,8 @@ media/
 .DS_Store
 Thumbs.db
 *.log
+
+# Google Service Account — NUNCA commitar
+*service_account*.json
+*credentials*.json
+*google_credentials*.json

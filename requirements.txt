@@ -19,3 +19,8 @@ django-debug-toolbar==5.1.0
 
 # Exportação Excel
 openpyxl==3.1.5
+
+# Google Calendar API
+google-api-python-client==2.140.0
+google-auth==2.35.0
+google-auth-httplib2==0.2.0

@@ -55,6 +55,9 @@ urlpatterns += [
     path('meus-agendamentos/',  views.meus_agendamentos, name='meus_agendamentos'),
     path('agendamento/novo/',   views.novo_agendamento,  name='novo_agendamento'),
 
+    # ── CONFIGURAÇÕES USUÁRIO COMUM ───────────────────────────────
+    path('minha-conta/',        views.configuracoes_usuario, name='configuracoes_usuario'),
+
     # ── AGENDAMENTO — AÇÕES DA EQUIPE TI ─────────────────────────
     path('agendamento/<int:pk>/aprovar/',   views.aprovar_agendamento,  name='aprovar_agendamento'),
     path('agendamento/<int:pk>/cancelar/',  views.cancelar_agendamento, name='cancelar_agendamento'),

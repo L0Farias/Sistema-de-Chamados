@@ -1,4 +1,5 @@
 import json
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -141,10 +142,10 @@ def criar_chamado(request):
 
 @login_required
 def detalhe_chamado(request, pk):
-    chamado = get_object_or_404(Chamado, pk=pk)
-    if request.user.tipo == 'comum' and chamado.nome_usuario != request.user:
-        messages.error(request, 'Sem permissão.')
+    # Usuário comum não tem acesso à tela de detalhe — toda informação está em Meus Chamados
+    if request.user.tipo == 'comum':
         return redirect('usuario_comum')
+    chamado = get_object_or_404(Chamado, pk=pk)
     return render(request, 'chamados/detalhe_chamado.html', {
         'chamado': chamado,
         'mensagens': chamado.mensagens.all(),
@@ -770,6 +771,79 @@ def novo_agendamento(request):
 
     if request.method == 'POST' and form.is_valid():
         cd = form.cleaned_data
+
+        # ── 1. Verificar disponibilidade no Google Calendar ──────────
+        from chamados.services.google_calendar import GoogleCalendarService, GoogleCalendarError
+        import logging
+        logger = logging.getLogger(__name__)
+
+        gc_habilitado = bool(
+            os.environ.get('GOOGLE_SERVICE_ACCOUNT_FILE') and
+            os.environ.get('GOOGLE_CALENDAR_ID')
+        )
+
+        google_event_id = ''
+
+        if gc_habilitado:
+            try:
+                svc = GoogleCalendarService()
+                disponivel, msg_conflito = svc.check_availability(
+                    local          = cd['local'],
+                    data           = cd['data'],
+                    horario_inicio = cd['horario_inicio'],
+                    horario_fim    = cd['horario_fim'],
+                )
+                if not disponivel:
+                    messages.error(request, msg_conflito)
+                    return render(request, 'chamados/novo_agendamento.html', {
+                        'user': request.user,
+                        'form': form,
+                    })
+            except GoogleCalendarError as e:
+                logger.error('Erro GoogleCalendar (check): %s', e)
+                messages.error(
+                    request,
+                    f'Não foi possível verificar a disponibilidade no Google Calendar. '
+                    f'Tente novamente mais tarde. Detalhe: {e}'
+                )
+                return render(request, 'chamados/novo_agendamento.html', {
+                    'user': request.user,
+                    'form': form,
+                })
+
+        # ── 2. Criar evento no Google Calendar ───────────────────────
+        if gc_habilitado:
+            try:
+                svc = GoogleCalendarService()
+                titulo   = f'Agendamento — {cd["local"]} ({request.user.get_full_name() or request.user.username})'
+                descricao = (
+                    f'Solicitante: {request.user.get_full_name() or request.user.username}\n'
+                    f'Setor: {cd.get("setor","")}\n'
+                    f'Finalidade: {cd.get("finalidade","")}\n'
+                    f'Equipamentos: {", ".join(cd.get("equipamentos",[]))}\n'
+                    f'Observações: {cd.get("observacoes","")}'
+                )
+                google_event_id = svc.create_event(
+                    local          = cd['local'],
+                    data           = cd['data'],
+                    horario_inicio = cd['horario_inicio'],
+                    horario_fim    = cd['horario_fim'],
+                    titulo         = titulo,
+                    descricao      = descricao,
+                )
+            except GoogleCalendarError as e:
+                logger.error('Erro GoogleCalendar (create): %s', e)
+                messages.error(
+                    request,
+                    f'O horário está disponível, mas não foi possível criar o evento no Google Calendar. '
+                    f'Detalhe: {e}'
+                )
+                return render(request, 'chamados/novo_agendamento.html', {
+                    'user': request.user,
+                    'form': form,
+                })
+
+        # ── 3. Salvar no banco somente após sucesso no Google ─────────
         AgendamentoMultimidia.objects.create(
             solicitante    = request.user,
             setor          = cd['setor'],
@@ -782,8 +856,9 @@ def novo_agendamento(request):
             finalidade     = cd.get('finalidade', ''),
             observacoes    = cd.get('observacoes', ''),
             status         = 'Pendente',
+            google_event_id = google_event_id,
         )
-        messages.success(request, 'Agendamento solicitado com sucesso! Aguarde aprovação da equipe TI.')
+        messages.success(request, '✅ Agendamento solicitado com sucesso! Aguarde aprovação da equipe TI.')
         return redirect('meus_agendamentos')
 
     return render(request, 'chamados/novo_agendamento.html', {
@@ -816,6 +891,15 @@ def cancelar_agendamento(request, pk):
     ag = get_object_or_404(AgendamentoMultimidia, pk=pk)
     ag.status = 'Cancelado'
     ag.save()
+
+    # Remover evento do Google Calendar ao cancelar
+    if ag.google_event_id:
+        try:
+            from chamados.services.google_calendar import GoogleCalendarService
+            GoogleCalendarService().delete_event(ag.google_event_id)
+        except Exception:
+            pass  # falha silenciosa — o cancelamento no Django já está registrado
+
     messages.success(request, f'Agendamento #{pk} cancelado.')
     return redirect('agendamento_multimidia')
 
@@ -830,3 +914,15 @@ def concluir_agendamento(request, pk):
     ag.save()
     messages.success(request, f'Agendamento #{pk} concluído.')
     return redirect('agendamento_multimidia')
+
+
+# ──────────────────────────────────────────
+#  CONFIGURAÇÕES DO USUÁRIO COMUM (placeholder)
+# ──────────────────────────────────────────
+
+@login_required
+def configuracoes_usuario(request):
+    """Placeholder de configurações para o usuário comum."""
+    if request.user.tipo == 'ti':
+        return redirect('configuracoes')
+    return render(request, 'chamados/configuracoes_usuario.html', {'user': request.user})

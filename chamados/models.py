@@ -155,6 +155,7 @@ class AgendamentoMultimidia(models.Model):
         ('Aprovado',  'Aprovado'),
         ('Recusado',  'Recusado'),
         ('Cancelado', 'Cancelado'),
+        ('Concluído', 'Concluído'),
     ]
 
     EQUIPAMENTOS_CHOICES = [
@@ -162,9 +163,19 @@ class AgendamentoMultimidia(models.Model):
         'Notebook',
         'Caixa de Som',
         'Microfone',
-        'TV',
-        'Cabo HDMI',
         'Outro',
+    ]
+
+    LOCAIS_CHOICES = [
+        ('Auditório da Prefeitura',       'Auditório da Prefeitura'),
+        ('Sede da Secretaria de Saúde',   'Sede da Secretaria de Saúde'),
+        ('Centro Integrado',              'Centro Integrado'),
+        ('Faetec',                        'Faetec'),
+        ('Sicoob',                        'Sicoob'),
+        ('Ciep',                          'Ciep'),
+        ('Maristas',                      'Maristas'),
+        ('Cipec',                         'Cipec'),
+        ('Sala dos Conselhos',            'Sala dos Conselhos'),
     ]
 
     solicitante      = models.ForeignKey(
@@ -172,7 +183,11 @@ class AgendamentoMultimidia(models.Model):
         related_name='agendamentos', verbose_name="Solicitante"
     )
     setor            = models.CharField(max_length=100, verbose_name="Setor")
-    local            = models.CharField(max_length=200, verbose_name="Local / Sala")
+    local            = models.CharField(
+        max_length=200,
+        choices=LOCAIS_CHOICES,
+        verbose_name="Local"
+    )
     sala             = models.CharField(max_length=100, verbose_name="Sala", blank=True)
     data             = models.DateField(verbose_name="Data do Agendamento")
     horario_inicio   = models.TimeField(verbose_name="Horário de Início")
@@ -182,6 +197,10 @@ class AgendamentoMultimidia(models.Model):
     observacoes      = models.TextField(blank=True, verbose_name="Observações")
     status           = models.CharField(
         max_length=10, choices=STATUS_CHOICES, default='Pendente', verbose_name="Status"
+    )
+    google_event_id  = models.CharField(
+        max_length=255, blank=True, default='',
+        verbose_name="ID do Evento no Google Calendar"
     )
     created_at       = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
 

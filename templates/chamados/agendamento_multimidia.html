@@ -62,9 +62,45 @@
         .form-control,.form-select{font-size:.82rem;background:var(--input-bg);color:var(--text-primary);border-color:var(--border-color);}
         .form-control::placeholder{color:var(--text-muted);}
         body.dark-mode .form-control:focus,body.dark-mode .form-select:focus{background:var(--input-bg);color:var(--text-primary);border-color:#60a5fa;box-shadow:0 0 0 .2rem rgba(96,165,250,.2);}
-        .eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:4px;}
-        .eq-grid .form-check{background:var(--list-bg);border-radius:6px;padding:4px 8px;border:1px solid var(--border-color);font-size:.74rem;margin:0;color:var(--text-primary);}
-        .form-check-label{color:var(--text-primary);}
+        .eq-grid{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 6px;
+        }
+        /* Cada opção de equipamento — checkbox alinhado dentro da caixa */
+        .eq-grid .form-check{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--list-bg);
+            border-radius: 6px;
+            padding: 7px 10px;
+            border: 1px solid var(--border-color);
+            font-size: .76rem;
+            margin: 0;
+            min-height: 34px;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: border-color .15s, background .15s;
+        }
+        .eq-grid .form-check:hover{
+            border-color: #3b82f6;
+            background: rgba(59,130,246,.05);
+        }
+        body.dark-mode .eq-grid .form-check:hover{ background: rgba(96,165,250,.08); }
+        /* Checkbox sem margem padrão do Bootstrap — fica no fluxo flex */
+        .eq-grid .form-check .form-check-input{
+            margin: 0;
+            flex-shrink: 0;
+            position: static;
+        }
+        /* Label sem margem extra */
+        .eq-grid .form-check .form-check-label{
+            margin: 0;
+            cursor: pointer;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
 
         /* ── Cards dos painéis ───────────────────────────────── */
         .card{background:var(--card-bg);border-color:var(--border-color);color:var(--text-primary);}
@@ -164,7 +200,7 @@
 
                         <form method="POST" id="formAgendamento">
                             {% csrf_token %}
-                            <div class="row g-2 mb-2">
+                            <div class="row g-2 mb-3">
                                 <div class="col-6">
                                     <label class="compact">Setor *</label>{{ form.setor }}
                                     {% if form.setor.errors %}<div class="text-danger" style="font-size:.7rem;">{{ form.setor.errors.0 }}</div>{% endif %}
@@ -174,8 +210,8 @@
                                     {% if form.local.errors %}<div class="text-danger" style="font-size:.7rem;">{{ form.local.errors.0 }}</div>{% endif %}
                                 </div>
                             </div>
-                            <div class="mb-2"><label class="compact">Sala</label>{{ form.sala }}</div>
-                            <div class="row g-2 mb-2">
+                            <div class="mb-3"><label class="compact">Sala</label>{{ form.sala }}</div>
+                            <div class="row g-2 mb-3">
                                 <div class="col-4">
                                     <label class="compact">Data *</label>{{ form.data }}
                                     {% if form.data.errors %}<div class="text-danger" style="font-size:.7rem;">{{ form.data.errors.0 }}</div>{% endif %}
@@ -189,12 +225,19 @@
                                     {% if form.horario_fim.errors %}<div class="text-danger" style="font-size:.7rem;">{{ form.horario_fim.errors.0 }}</div>{% endif %}
                                 </div>
                             </div>
-                            <div class="mb-2">
+                            <div class="mb-3">
                                 <label class="compact">Equipamentos *</label>
-                                <div class="eq-grid">{% for cb in form.equipamentos %}<div class="form-check">{{ cb.tag }}<label class="form-check-label" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label></div>{% endfor %}</div>
+                                <div class="eq-grid">
+                                    {% for cb in form.equipamentos %}
+                                    <div class="form-check">
+                                        {{ cb.tag }}
+                                        <label class="form-check-label" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                                 {% if form.equipamentos.errors %}<div class="text-danger" style="font-size:.7rem;margin-top:3px;">{{ form.equipamentos.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="mb-2"><label class="compact">Finalidade</label>{{ form.finalidade }}</div>
+                            <div class="mb-3"><label class="compact">Finalidade</label>{{ form.finalidade }}</div>
                             <div class="mb-3"><label class="compact">Observações</label>{{ form.observacoes }}</div>
                             {% if form.non_field_errors %}<div class="alert alert-danger py-1" style="font-size:.78rem;">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
                             <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-paper-plane me-1"></i>Solicitar Agendamento</button>

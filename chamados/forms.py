@@ -25,7 +25,7 @@ class UsuarioComumCreationForm(UserCreationForm):
     class Meta:
         model = Usuario
         fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
-        
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['first_name'].required = True
@@ -87,22 +87,25 @@ EQUIPAMENTOS_CHOICES = [
     ('Outro',          'Outro'),
 ]
 
+# Locais fixos — sincronizados com AgendamentoMultimidia.LOCAIS_CHOICES
+LOCAIS_CHOICES = AgendamentoMultimidia.LOCAIS_CHOICES
+
 class AgendamentoMultimidiaForm(forms.Form):
     setor = forms.CharField(
         label="Setor",
         max_length=100,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Departamento de RH'})
     )
-    local = forms.CharField(
-        label="Local",
-        max_length=200,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Bloco A, Sala 101'})
+    local = forms.ChoiceField(
+        label="Local *",
+        choices=[('', '— Selecione o local —')] + list(LOCAIS_CHOICES),
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
     sala = forms.CharField(
-        label="Sala",
+        label="Sala / Ambiente específico",
         max_length=100,
         required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Auditório Principal'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Auditório Principal (opcional)'})
     )
     data = forms.DateField(
         label="Data",
@@ -134,6 +137,15 @@ class AgendamentoMultimidiaForm(forms.Form):
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Informações adicionais...'})
     )
 
+    def clean_local(self):
+        local = self.cleaned_data.get('local', '').strip()
+        if not local:
+            raise forms.ValidationError('Selecione um local.')
+        valid = [v for v, _ in LOCAIS_CHOICES]
+        if local not in valid:
+            raise forms.ValidationError('Local inválido. Selecione uma das opções disponíveis.')
+        return local
+
     def clean(self):
         cleaned = super().clean()
         data       = cleaned.get('data')
@@ -144,8 +156,9 @@ class AgendamentoMultimidiaForm(forms.Form):
         if data and data < datetime.date.today():
             self.add_error('data', 'A data não pode ser anterior a hoje.')
 
-        if h_inicio and h_fim and h_fim <= h_inicio:
-            self.add_error('horario_fim', 'O horário de fim deve ser posterior ao horário de início.')
+        if h_inicio and h_fim:
+            if h_fim <= h_inicio:
+                self.add_error('horario_fim', 'O horário de fim deve ser posterior ao horário de início.')
 
         if not equip:
             self.add_error('equipamentos', 'Selecione ao menos um equipamento.')
